@@ -37,6 +37,47 @@ const INITIAL_BGS = [
   { id: 3, company: "IOCL", bgNo: "0452NDLG00007726", bgAmount: 10000000, marginPct: 15, marginAmt: 1500000, commissionPct: 0.8, bgStartDate: "2025-11-18", bgEndDate: "2026-06-13", bankName: "ICICI Bank - Himatnagar", stampDuty: 300, bgRefNo: "0452NDLG00007726", claimExpiry: "2026-06-13" },
 ];
 
+
+const EXCEL_DASHBOARD = {
+  title: "NH PACKAGE 03 & 04 AMD-RAJKOT — BITUMEN & RS-1 DASHBOARD",
+  period: "Financial Year 2026-27 | Data Period: April 2026 - May 2026",
+  material: "Bitumen VG40",
+  overall: { particular: "Bitumen VG40 (Total)", qtyMt: 643.95, qtyTon: 643.95, taxable: 56013948.50, cgst: 5041255.36, sgst: 5041255.36, net: 66096459.22, trips: 22, avgRate: 86984.9343893159 },
+  terminalBreakdown: [
+    { particular: "HPCL KANDLA", qtyMt: 78.46, qtyTon: 78.46, taxable: 6922525.80, cgst: 623027.31, sgst: 623027.31, net: 8168580.42, trips: 3, avgRate: 88230 },
+    { particular: "HPCL PIPAVAV", qtyMt: 565.49, qtyTon: 565.49, taxable: 49091422.70, cgst: 4418228.05, sgst: 4418228.05, net: 57927878.80, trips: 19, avgRate: 86812.185361368 },
+  ],
+  companyBreakdown: [
+    { particular: "HPCL", qtyMt: 643.95, qtyTon: 643.95, taxable: 56013948.50, cgst: 5041255.36, sgst: 5041255.36, net: 66096459.22, trips: 22, avgRate: 86984.9343893159 },
+    { particular: "IOCL", qtyMt: 0, qtyTon: 0, taxable: 0, cgst: 0, sgst: 0, net: 0, trips: 0, avgRate: 0 },
+    { particular: "BPCL", qtyMt: 0, qtyTon: 0, taxable: 0, cgst: 0, sgst: 0, net: 0, trips: 0, avgRate: 0 },
+  ],
+  datewiseDetails: [
+    { date: "2026-04-16", month: "APRIL 2026", invoiceNo: "GJ0160003495", billingDocNo: "9021893308", vehicleNo: "GJ14AT2055", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 35520, qtyMt: 35.52, taxable: 2991849.60, cgst: 269266.46, sgst: 269266.46, net: 3530382.52 },
+    { date: "2026-04-16", month: "APRIL 2026", invoiceNo: "GJ0160003460", billingDocNo: "9021891025", vehicleNo: "RJ46GA6272", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 31300, qtyMt: 31.30, taxable: 2636399.00, cgst: 237275.91, sgst: 237275.91, net: 3110950.82 },
+    { date: "2026-04-27", month: "APRIL 2026", invoiceNo: "GJ0160006771", billingDocNo: "9022100097", vehicleNo: "GJ10TX7751", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 22120, qtyMt: 22.12, taxable: 1863167.60, cgst: 167685.08, sgst: 167685.08, net: 2198537.76 },
+    { date: "2026-04-27", month: "APRIL 2026", invoiceNo: "GJ0160006797", billingDocNo: "9022102689", vehicleNo: "GJ14AT2055", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 35450, qtyMt: 35.45, taxable: 2985953.50, cgst: 268735.82, sgst: 268735.82, net: 3523425.14 },
+    { date: "2026-04-27", month: "APRIL 2026", invoiceNo: "GJ0160006752", billingDocNo: "9022098844", vehicleNo: "GJ10TX7761", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 23170, qtyMt: 23.17, taxable: 1951609.10, cgst: 175644.82, sgst: 175644.82, net: 2302898.74 },
+    { date: "2026-04-29", month: "APRIL 2026", invoiceNo: "GJ0160007450", billingDocNo: "9022149054", vehicleNo: "GJ06AX4705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 22660, qtyMt: 22.66, taxable: 1908651.80, cgst: 171778.66, sgst: 171778.66, net: 2252209.12 },
+    { date: "2026-04-29", month: "APRIL 2026", invoiceNo: "GJ0160007507", billingDocNo: "9022151526", vehicleNo: "GJ06BY1044", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 30220, qtyMt: 30.22, taxable: 2545430.60, cgst: 229088.75, sgst: 229088.75, net: 3003608.10 },
+    { date: "2026-05-02", month: "MAY 2026", invoiceNo: "GJ0160009128", billingDocNo: "9022205352", vehicleNo: "GJ06BV7705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 31950, qtyMt: 31.95, taxable: 2818948.50, cgst: 253705.37, sgst: 253705.37, net: 3326359.24 },
+    { date: "2026-05-03", month: "MAY 2026", invoiceNo: "GJ0160009214", billingDocNo: "9022236850", vehicleNo: "GJ06BV5705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 32410, qtyMt: 32.41, taxable: 2859534.30, cgst: 257358.09, sgst: 257358.09, net: 3374250.48 },
+    { date: "2026-05-03", month: "MAY 2026", invoiceNo: "GJ0160009213", billingDocNo: "9022236825", vehicleNo: "GJ06BY9077", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 32340, qtyMt: 32.34, taxable: 2853358.20, cgst: 256802.24, sgst: 256802.24, net: 3366962.68 },
+    { date: "2026-05-03", month: "MAY 2026", invoiceNo: "GJ0160009215", billingDocNo: "9022236885", vehicleNo: "GJ06BY9005", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 30680, qtyMt: 30.68, taxable: 2706896.40, cgst: 243620.68, sgst: 243620.68, net: 3194137.76 },
+    { date: "2026-05-04", month: "MAY 2026", invoiceNo: "GJ0160010572", billingDocNo: "9022277720", vehicleNo: "GJ06BX0705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 31730, qtyMt: 31.73, taxable: 2799537.90, cgst: 251958.41, sgst: 251958.41, net: 3303454.72 },
+    { date: "2026-05-04", month: "MAY 2026", invoiceNo: "GJ0160010648", billingDocNo: "9022281779", vehicleNo: "GJ06BY1044", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 32080, qtyMt: 32.08, taxable: 2830418.40, cgst: 254737.66, sgst: 254737.66, net: 3339893.72 },
+    { date: "2026-05-05", month: "MAY 2026", invoiceNo: "GJ0160012325", billingDocNo: "9022329156", vehicleNo: "GJ06BV6705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 28500, qtyMt: 28.50, taxable: 2514555.00, cgst: 226309.95, sgst: 226309.95, net: 2967174.90 },
+    { date: "2026-05-07", month: "MAY 2026", invoiceNo: "GJ0160012856", billingDocNo: "9022373110", vehicleNo: "RJ38GA1492", company: "HPCL", terminal: "HPCL KANDLA", qtyKg: 30220, qtyMt: 30.22, taxable: 2666310.60, cgst: 239967.95, sgst: 239967.95, net: 3146246.50 },
+    { date: "2026-05-07", month: "MAY 2026", invoiceNo: "GJ0160012806", billingDocNo: "9022370208", vehicleNo: "GJ06AX4705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 22920, qtyMt: 22.92, taxable: 2022231.60, cgst: 182000.84, sgst: 182000.84, net: 2386233.28 },
+    { date: "2026-05-07", month: "MAY 2026", invoiceNo: "GJ0160012889", billingDocNo: "9022374728", vehicleNo: "GJ10TV7727", company: "HPCL", terminal: "HPCL KANDLA", qtyKg: 24520, qtyMt: 24.52, taxable: 2163399.60, cgst: 194705.96, sgst: 194705.96, net: 2552811.52 },
+    { date: "2026-05-07", month: "MAY 2026", invoiceNo: "GJ0160012888", billingDocNo: "9022374630", vehicleNo: "GJ10TV6377", company: "HPCL", terminal: "HPCL KANDLA", qtyKg: 23720, qtyMt: 23.72, taxable: 2092815.60, cgst: 188353.40, sgst: 188353.40, net: 2469522.40 },
+    { date: "2026-05-07", month: "MAY 2026", invoiceNo: "GJ0160012853", billingDocNo: "9022373008", vehicleNo: "GJ14AT3005", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 36040, qtyMt: 36.04, taxable: 3179809.20, cgst: 286182.83, sgst: 286182.83, net: 3752174.86 },
+    { date: "2026-05-08", month: "MAY 2026", invoiceNo: "GJ0160013158", billingDocNo: "9022393735", vehicleNo: "GJ06BX3705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 31400, qtyMt: 31.40, taxable: 2770422.00, cgst: 249337.98, sgst: 249337.98, net: 3269097.96 },
+    { date: "2026-05-08", month: "MAY 2026", invoiceNo: "GJ0160013104", billingDocNo: "9022391504", vehicleNo: "GJ06BY9005", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 32080, qtyMt: 32.08, taxable: 2830418.40, cgst: 254737.66, sgst: 254737.66, net: 3339893.72 },
+    { date: "2026-05-08", month: "MAY 2026", invoiceNo: "GJ0160013108", billingDocNo: "9022391609", vehicleNo: "GJ06AV5705", company: "HPCL", terminal: "HPCL PIPAVAV", qtyKg: 22920, qtyMt: 22.92, taxable: 2022231.60, cgst: 182000.84, sgst: 182000.84, net: 2386233.28 },
+  ],
+};
+
 const TODAY = "2026-05-09";
 
 function addDays(dateStr, days) {
@@ -77,6 +118,15 @@ function formatCurrency(n) {
 
 function formatAmt(n) {
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+}
+
+
+function formatQty(n) {
+  return Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+}
+
+function formatRate(n) {
+  return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
 function StatusBadge({ status, daysLeft }) {
@@ -473,6 +523,79 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
               <div style={cardStyle}>
                 <div style={labelStyle}>Margin Money Blocked</div>
                 <div style={{ ...valStyle, color: "#7c3aed" }}>{formatCurrency(stats.totalMargin)}</div>
+              </div>
+            </div>
+
+
+            {/* Excel Dashboard Summary */}
+            <div style={{ ...cardStyle, marginBottom: 18, border: "1px solid #dbe7f3" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.2 }}>{EXCEL_DASHBOARD.title}</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{EXCEL_DASHBOARD.period}</div>
+                </div>
+                <div style={{ background: "#ecfdf5", color: "#047857", border: "1px solid #bbf7d0", borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 700 }}>{EXCEL_DASHBOARD.material}</div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 18 }}>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Total Qty</div><div style={{ ...valStyle, fontSize: 22 }}>{formatQty(EXCEL_DASHBOARD.overall.qtyMt)} MT</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Taxable Value</div><div style={{ ...valStyle, fontSize: 22, color: "#0f766e" }}>{formatCurrency(EXCEL_DASHBOARD.overall.taxable)}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Net Amount</div><div style={{ ...valStyle, fontSize: 22, color: "#1a56db" }}>{formatCurrency(EXCEL_DASHBOARD.overall.net)}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Trips</div><div style={{ ...valStyle, fontSize: 22 }}>{EXCEL_DASHBOARD.overall.trips}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Avg Rate / MT</div><div style={{ ...valStyle, fontSize: 22, color: "#b45309" }}>{formatRate(EXCEL_DASHBOARD.overall.avgRate)}</div></div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 16, marginBottom: 18 }}>
+                {[
+                  { title: "Terminal-wise Breakdown", rows: EXCEL_DASHBOARD.terminalBreakdown },
+                  { title: "Company-wise Breakdown", rows: EXCEL_DASHBOARD.companyBreakdown },
+                ].map(section => (
+                  <div key={section.title} style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+                    <div style={{ background: "#0f172a", color: "white", padding: "10px 12px", fontSize: 12, fontWeight: 700 }}>{section.title}</div>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 620 }}>
+                        <thead><tr style={{ background: "#f8fafc" }}>{["Particulars", "Qty MT", "Taxable", "GST", "Net", "Trips", "Avg/MT"].map(h => <th key={h} style={{ padding: "9px 10px", textAlign: h === "Particulars" ? "left" : "right", fontSize: 10, color: "#64748b", textTransform: "uppercase", borderBottom: "1px solid #e2e8f0" }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {section.rows.map(row => (
+                            <tr key={row.particular} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <td style={{ padding: "10px", fontWeight: 700 }}>{row.particular}</td>
+                              <td style={{ padding: "10px", textAlign: "right" }}>{formatQty(row.qtyMt)}</td>
+                              <td style={{ padding: "10px", textAlign: "right" }}>{formatCurrency(row.taxable)}</td>
+                              <td style={{ padding: "10px", textAlign: "right" }}>{formatCurrency(row.cgst + row.sgst)}</td>
+                              <td style={{ padding: "10px", textAlign: "right", fontWeight: 700, color: "#1a56db" }}>{formatCurrency(row.net)}</td>
+                              <td style={{ padding: "10px", textAlign: "right" }}>{row.trips}</td>
+                              <td style={{ padding: "10px", textAlign: "right" }}>{formatRate(row.avgRate)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ background: "#f8fafc", padding: "10px 12px", fontSize: 12, fontWeight: 800, color: "#334155" }}>Date-wise Bitumen VG40 Invoice Details</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 940 }}>
+                    <thead><tr style={{ borderBottom: "2px solid #e2e8f0" }}>{["Date", "Invoice", "Billing Doc", "Vehicle", "Terminal", "Qty MT", "Taxable", "GST", "Net Amount"].map(h => <th key={h} style={{ padding: "9px 8px", textAlign: ["Qty MT", "Taxable", "GST", "Net Amount"].includes(h) ? "right" : "left", fontSize: 10, textTransform: "uppercase", color: "#64748b" }}>{h}</th>)}</tr></thead>
+                    <tbody>
+                      {EXCEL_DASHBOARD.datewiseDetails.map(row => (
+                        <tr key={row.invoiceNo + "-" + row.billingDocNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "9px 8px" }}>{formatDate(row.date)}</td>
+                          <td style={{ padding: "9px 8px", fontWeight: 700 }}>{row.invoiceNo}</td>
+                          <td style={{ padding: "9px 8px" }}>{row.billingDocNo}</td>
+                          <td style={{ padding: "9px 8px" }}>{row.vehicleNo}</td>
+                          <td style={{ padding: "9px 8px" }}>{row.terminal}</td>
+                          <td style={{ padding: "9px 8px", textAlign: "right" }}>{formatQty(row.qtyMt)}</td>
+                          <td style={{ padding: "9px 8px", textAlign: "right" }}>{formatCurrency(row.taxable)}</td>
+                          <td style={{ padding: "9px 8px", textAlign: "right" }}>{formatCurrency(row.cgst + row.sgst)}</td>
+                          <td style={{ padding: "9px 8px", textAlign: "right", fontWeight: 700, color: "#1a56db" }}>{formatCurrency(row.net)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
