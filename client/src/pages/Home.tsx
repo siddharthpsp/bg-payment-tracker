@@ -190,6 +190,14 @@ export default function Home() {
       return INITIAL_BGS;
     }
   });
+  const [paymentHistory, setPaymentHistory] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("bgpt.paymentHistory");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [tab, setTab] = useState("dashboard");
   const [filterCompany, setFilterCompany] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -213,6 +221,10 @@ export default function Home() {
   useEffect(() => {
     window.localStorage.setItem("bgpt.bgs", JSON.stringify(bgs));
   }, [bgs]);
+
+  useEffect(() => {
+    window.localStorage.setItem("bgpt.paymentHistory", JSON.stringify(paymentHistory));
+  }, [paymentHistory]);
 
   const stats = useMemo(() => {
     const totalOutstanding = invoices.reduce((s, i) => s + getPendingAmt(i), 0);
@@ -304,6 +316,14 @@ export default function Home() {
     });
   }, [invoices, filterCompany, filterStatus]);
 
+  const paymentHistorySorted = useMemo(() => {
+    return [...paymentHistory].sort((a, b) => {
+      const dateDiff = new Date(b.paymentDate) - new Date(a.paymentDate);
+      if (dateDiff !== 0) return dateDiff;
+      return Number(b.id || 0) - Number(a.id || 0);
+    });
+  }, [paymentHistory]);
+
   function handleAddInvoice() {
     const company = newInv.company;
     let dueDate;
@@ -345,39 +365,92 @@ export default function Home() {
     const amount = Math.max(0, parseFloat(paymentAmount) || 0);
     if (!amount) return;
 
-    setInvoices(prev => {
-      const sequential = prev
-        .filter(i => i.company === directPayCompany && getPendingAmt(i) > 0)
-        .sort((a, b) => {
-          const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
-          if (dueDiff !== 0) return dueDiff;
-          const dateDiff = new Date(a.date) - new Date(b.date);
-          if (dateDiff !== 0) return dateDiff;
-          return Number(a.id) - Number(b.id);
-        });
-      const allocation = {};
-      let remaining = amount;
-
-      for (const inv of sequential) {
-        if (remaining <= 0) break;
-        const pending = getPendingAmt(inv);
-        const applied = Math.min(pending, remaining);
-        if (applied > 0) allocation[inv.id] = applied;
-        remaining -= applied;
-      }
-
-      return prev.map(inv => {
-        const applied = allocation[inv.id] || 0;
-        if (!applied) return inv;
-        const paidAmt = Math.min(Number(inv.netAmt || 0), getPaidAmt(inv) + applied);
-        const status = paidAmt >= Number(inv.netAmt || 0) - 0.01 ? "paid" : "partial";
-        return { ...inv, paidAmt, paidDate: payDate, status };
+    const sequential = invoices
+      .filter(i => i.company === directPayCompany && getPendingAmt(i) > 0)
+      .sort((a, b) => {
+        const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
+        if (dueDiff !== 0) return dueDiff;
+        const dateDiff = new Date(a.date) - new Date(b.date);
+        if (dateDiff !== 0) return dateDiff;
+        return Number(a.id) - Number(b.id);
       });
-    });
+    const allocation = {};
+    const allocationRows = [];
+    let remaining = amount;
+
+    for (const inv of sequential) {
+      if (remaining <= 0) break;
+      const pendingBefore = getPendingAmt(inv);
+      const applied = Math.min(pendingBefore, remaining);
+      if (applied > 0) {
+        allocation[inv.id] = applied;
+        allocationRows.push({
+          invoiceId: inv.id,
+          invoiceNo: inv.invoiceNo,
+          invoiceDate: inv.date,
+          dueDate: inv.dueDate,
+          terminal: inv.terminal,
+          invoiceAmount: Number(inv.netAmt || 0),
+          pendingBefore,
+          amountAdjusted: applied,
+          pendingAfter: Math.max(0, pendingBefore - applied),
+        });
+      }
+      remaining -= applied;
+    }
+
+    if (allocationRows.length === 0) return;
+
+    setInvoices(prev => prev.map(inv => {
+      const applied = allocation[inv.id] || 0;
+      if (!applied) return inv;
+      const paidAmt = Math.min(Number(inv.netAmt || 0), getPaidAmt(inv) + applied);
+      const status = paidAmt >= Number(inv.netAmt || 0) - 0.01 ? "paid" : "partial";
+      return { ...inv, paidAmt, paidDate: payDate, status };
+    }));
+
+    const allocatedAmount = allocationRows.reduce((sum, row) => sum + row.amountAdjusted, 0);
+    setPaymentHistory(prev => [{
+      id: Date.now(),
+      paymentDate: payDate,
+      company: directPayCompany,
+      amountReceived: amount,
+      allocatedAmount,
+      unallocatedAmount: Math.max(0, amount - allocatedAmount),
+      allocations: allocationRows,
+    }, ...prev]);
 
     setShowPayModal(false);
     setPayDate(TODAY);
     setPaymentAmount("");
+  }
+
+  function handleDeletePayment(paymentId) {
+    const payment = paymentHistory.find(p => p.id === paymentId);
+    if (!payment) return;
+
+    const confirmDelete = window.confirm(
+      `Delete payment entry ${payment.id} dated ${formatDate(payment.paymentDate)}?\n\nThis will reverse ${formatAmt(payment.allocatedAmount)} from the invoices adjusted by this payment.`
+    );
+    if (!confirmDelete) return;
+
+    const reversalByInvoice = {};
+    (payment.allocations || []).forEach(row => {
+      reversalByInvoice[row.invoiceId] = (reversalByInvoice[row.invoiceId] || 0) + Number(row.amountAdjusted || 0);
+    });
+
+    setInvoices(prev => prev.map(inv => {
+      const reversal = reversalByInvoice[inv.id] || 0;
+      if (!reversal) return inv;
+
+      const paidAmt = Math.max(0, Math.min(Number(inv.netAmt || 0), getPaidAmt(inv) - reversal));
+      const status = paidAmt >= Number(inv.netAmt || 0) - 0.01 ? "paid" : paidAmt > 0 ? "partial" : "unpaid";
+      const paidDate = paidAmt > 0 ? inv.paidDate : null;
+
+      return { ...inv, paidAmt, paidDate, status };
+    }));
+
+    setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
   }
 
   function handleAddBG() {
@@ -557,9 +630,9 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3 }}>NH Package 03 & 04 — BG & Payment Tracker</div>
         <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Bank Guarantee • Invoice Payment • Due Date Reminders</div>
         <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-          {["dashboard", "invoices", "bg_details", "bg_report"].map(t => (
+          {["dashboard", "invoices", "payments", "bg_details", "bg_report"].map(t => (
             <button key={t} onClick={() => setTab(t)} style={tabStyle(tab === t)}>
-              {t === "dashboard" ? "Dashboard" : t === "invoices" ? "Invoices" : t === "bg_details" ? "BG Details" : "BG Report"}
+              {t === "dashboard" ? "Dashboard" : t === "invoices" ? "Invoices" : t === "payments" ? "Payment History" : t === "bg_details" ? "BG Details" : "BG Report"}
             </button>
           ))}
         </div>
@@ -818,6 +891,94 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                 <span style={{ color: "#16a34a" }}>Paid: {formatCurrency(filteredInvoices.reduce((s, i) => s + getPaidAmt(i), 0))}</span>
               </div>
             </div>
+          </>
+        )}
+
+        {/* ===== PAYMENT HISTORY TAB ===== */}
+        {tab === "payments" && (
+          <>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.2 }}>Date-wise Lump-Sum Payment History</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Every direct payment is saved with the payment date, company, amount received, and invoice-wise adjustment details.</div>
+              </div>
+              <button onClick={() => openDirectPayment()} style={{ ...btnPrimary, background: "#16a34a" }}>+ Direct Payment</button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 18 }}>
+              <div style={cardStyle}><div style={labelStyle}>Total Payments Entered</div><div style={{ ...valStyle, color: "#0f172a" }}>{paymentHistory.length}</div></div>
+              <div style={cardStyle}><div style={labelStyle}>Amount Received</div><div style={{ ...valStyle, color: "#16a34a" }}>{formatCurrency(paymentHistory.reduce((s, p) => s + Number(p.amountReceived || 0), 0))}</div></div>
+              <div style={cardStyle}><div style={labelStyle}>Adjusted to Invoices</div><div style={{ ...valStyle, color: "#1a56db" }}>{formatCurrency(paymentHistory.reduce((s, p) => s + Number(p.allocatedAmount || 0), 0))}</div></div>
+              <div style={cardStyle}><div style={labelStyle}>Unadjusted Excess</div><div style={{ ...valStyle, color: "#b45309" }}>{formatCurrency(paymentHistory.reduce((s, p) => s + Number(p.unallocatedAmount || 0), 0))}</div></div>
+            </div>
+
+            {paymentHistorySorted.length === 0 ? (
+              <div style={{ ...cardStyle, textAlign: "center", padding: "34px 22px" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>No lump-sum payment recorded yet</div>
+                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 18 }}>Click Direct Payment, enter the company, date, and amount. The ledger will show date-wise adjustment automatically.</div>
+                <button onClick={() => openDirectPayment()} style={{ ...btnPrimary, background: "#16a34a" }}>Enter First Payment</button>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 16 }}>
+                {paymentHistorySorted.map(payment => (
+                  <div key={payment.id} style={{ ...cardStyle, padding: 0, overflow: "hidden", border: "1px solid #dbe7f3" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", padding: "16px 18px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 800 }}>{formatDate(payment.paymentDate)} — {payment.company}</div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>Payment ID: {payment.id}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", textAlign: "right" }}>
+                        <div><div style={labelStyle}>Received</div><div style={{ fontSize: 18, fontWeight: 800, color: "#16a34a" }}>{formatAmt(payment.amountReceived)}</div></div>
+                        <div><div style={labelStyle}>Adjusted</div><div style={{ fontSize: 18, fontWeight: 800, color: "#1a56db" }}>{formatAmt(payment.allocatedAmount)}</div></div>
+                        {Number(payment.unallocatedAmount || 0) > 0 && <div><div style={labelStyle}>Unadjusted</div><div style={{ fontSize: 18, fontWeight: 800, color: "#b45309" }}>{formatAmt(payment.unallocatedAmount)}</div></div>}
+                        <button
+                          onClick={() => handleDeletePayment(payment.id)}
+                          title="Delete this payment entry and reverse its invoice allocations"
+                          style={{
+                            border: "1px solid #fecaca",
+                            background: "#fff1f2",
+                            color: "#b91c1c",
+                            borderRadius: 10,
+                            padding: "8px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 820 }}>
+                        <thead>
+                          <tr style={{ background: "white" }}>
+                            {["#", "Invoice No", "Inv Date", "Due Date", "Terminal", "Pending Before", "Adjusted", "Pending After"].map(h => (
+                              <th key={h} style={{ padding: "10px 12px", textAlign: h.includes("Pending") || h === "Adjusted" ? "right" : "left", fontSize: 10, textTransform: "uppercase", color: "#8896a8", fontWeight: 700, borderBottom: "1px solid #e2e8f0" }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(payment.allocations || []).map((row, idx) => (
+                            <tr key={`${payment.id}-${row.invoiceId}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <td style={{ padding: "10px 12px", color: "#94a3b8" }}>{idx + 1}</td>
+                              <td style={{ padding: "10px 12px", fontWeight: 700 }}>{row.invoiceNo}</td>
+                              <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>{formatDate(row.invoiceDate)}</td>
+                              <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>{formatDate(row.dueDate)}</td>
+                              <td style={{ padding: "10px 12px" }}>{row.terminal}</td>
+                              <td style={{ padding: "10px 12px", textAlign: "right", color: "#dc2626", fontWeight: 600 }}>{formatAmt(row.pendingBefore)}</td>
+                              <td style={{ padding: "10px 12px", textAlign: "right", color: "#16a34a", fontWeight: 800 }}>{formatAmt(row.amountAdjusted)}</td>
+                              <td style={{ padding: "10px 12px", textAlign: "right", color: row.pendingAfter > 0 ? "#b45309" : "#16a34a", fontWeight: 700 }}>{formatAmt(row.pendingAfter)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
 

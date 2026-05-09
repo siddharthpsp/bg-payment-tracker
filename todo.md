@@ -36,7 +36,6 @@
 - [ ] Update the BG Payment Tracker dashboard to include the Excel dashboard details while preserving the existing Swiss Financial Modernism interface.
 - [ ] Rebuild and republish the GitHub Pages version so the live GitHub URL reflects the new dashboard content.
 - [ ] Verify the live app opens correctly after publishing and summarize the added details for the user.
-<<<<<<< HEAD
 
 # Remove Date-wise Invoice Table
 
@@ -73,5 +72,21 @@
 - [x] Refactor the payment modal so input focus is preserved while updating the allocation preview.
 - [ ] Build and deploy the focus fix to GitHub Pages.
 - [ ] Save a checkpoint and share the confirmed live link with the user.
-=======
->>>>>>> 25fb376 (Add Excel dashboard details to tracker)
+
+# Date-wise Lump-Sum Payment History
+
+- [x] Inspect the current direct payment state and sequential allocation handler.
+- [x] Store each direct payment entry with payment date, company, amount received, and allocation details.
+- [x] Add a date-wise payment history section or tab showing lump-sum payments clearly.
+- [x] Show which invoices each payment adjusted, including fully paid and partly paid balances.
+- [ ] Build, deploy to GitHub Pages, push source to GitHub, and save a new checkpoint.
+
+
+# Delete Old Payment History Entry
+
+- [x] Inspect the current payment history records and invoice allocation fields.
+- [x] Add a delete button for each date-wise payment history entry.
+- [x] When a payment is deleted, reverse only that payment’s allocated amounts from the affected invoices.
+- [x] Recalculate invoice status as paid, partly paid, or pending after deletion.
+- [ ] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
+
