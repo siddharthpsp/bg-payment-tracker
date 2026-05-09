@@ -39,7 +39,7 @@ const INITIAL_BGS = [
 
 
 const EXCEL_DASHBOARD = {
-  title: "NH PACKAGE 03 & 04 AMD-RAJKOT — BITUMEN & RS-1 DASHBOARD",
+  title: "NH PACKAGE 03 & 04 AMD-RAJKOT — BITUMEN DASHBOARD",
   period: "Financial Year 2026-27 | Data Period: April 2026 - May 2026",
   material: "Bitumen VG40",
   overall: { particular: "Bitumen VG40 (Total)", qtyMt: 643.95, qtyTon: 643.95, taxable: 56013948.50, cgst: 5041255.36, sgst: 5041255.36, net: 66096459.22, trips: 22, avgRate: 86984.9343893159 },

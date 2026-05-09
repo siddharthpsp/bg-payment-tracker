@@ -43,3 +43,9 @@
 - [ ] Keep the Excel summary cards, terminal-wise breakdown, and company-wise breakdown visible.
 - [ ] Rebuild and republish the GitHub Pages app.
 - [ ] Verify the live dashboard no longer shows the date-wise invoice table.
+
+# Remove RS-1 From Dashboard Heading
+
+- [ ] Change the dashboard heading from “NH PACKAGE 03 & 04 AMD-RAJKOT — BITUMEN & RS-1 DASHBOARD” to remove “RS-1”.
+- [ ] Rebuild and republish the GitHub Pages app.
+- [ ] Verify the live dashboard heading no longer includes “RS-1”.
