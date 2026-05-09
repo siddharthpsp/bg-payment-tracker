@@ -106,3 +106,11 @@
 - [x] Fix any cached or non-reactive dashboard calculations so adding invoices updates dashboard totals immediately.
 - [x] Fix invoice deletion so dashboard totals, pending amount, paid amount, and due sections update immediately.
 - [x] Validate build, deploy to GitHub Pages, push source, verify live markers, and save a checkpoint.
+
+# Cross-Browser Data Consistency
+
+- [x] Confirm current invoices, BGs, and payment history are stored in browser local storage.
+- [x] Add a visible Export Data button so the current browser’s data can be downloaded as a backup JSON file.
+- [x] Add an Import Data button so the same invoices, BGs, and payment history can be restored in another browser.
+- [x] Add clear in-app guidance explaining that static GitHub Pages data is browser-specific unless a database-backed version is added.
+- [ ] Validate build, deploy to GitHub Pages, push source, verify live markers, and save a checkpoint.
