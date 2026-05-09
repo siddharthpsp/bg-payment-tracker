@@ -4,8 +4,7 @@
  * This page prioritizes ledger clarity, reserve-bank navy accents, rupee-green status cues,
  * compact controls, and highly readable tabular finance data.
  */
-import { useState, useMemo, useEffect } from "react";
-import { trpc } from "@/lib/trpc";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 const INITIAL_INVOICES = [
   { id: 1, date: "2026-04-16", invoiceNo: "GJ0160003495", company: "HPCL", terminal: "HPCL PIPAVAV", qty: 35.52, netAmt: 3530382.52, dueDate: "2026-05-16", paidDate: null, paidAmt: 0, status: "unpaid" },
@@ -194,15 +193,40 @@ function Overlay({ children, onClose }) {
 }
 
 export default function Home() {
-  const cloudStateQuery = trpc.tracker.getState.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-    retry: 1,
+  const [invoices, setInvoices] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("bgpt.invoices");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const alreadyRestored = window.localStorage.getItem("bgpt.restored.GJ0160012325") === "true";
+        const missingReportedInvoice = Array.isArray(parsed) && !parsed.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO);
+        if (missingReportedInvoice && !alreadyRestored) {
+          window.localStorage.setItem("bgpt.restored.GJ0160012325", "true");
+          return [...parsed, buildReportedRestoreInvoice(parsed)].sort((a, b) => new Date(a.date) - new Date(b.date) || Number(a.id) - Number(b.id));
+        }
+        return parsed;
+      }
+      return INITIAL_INVOICES;
+    } catch {
+      return INITIAL_INVOICES;
+    }
   });
-  const saveTrackerState = trpc.tracker.saveState.useMutation();
-  const [cloudLoaded, setCloudLoaded] = useState(false);
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
-  const [bgs, setBgs] = useState(INITIAL_BGS);
-  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [bgs, setBgs] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("bgpt.bgs");
+      return saved ? JSON.parse(saved) : INITIAL_BGS;
+    } catch {
+      return INITIAL_BGS;
+    }
+  });
+  const [paymentHistory, setPaymentHistory] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem("bgpt.paymentHistory");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [tab, setTab] = useState("dashboard");
   const [filterCompany, setFilterCompany] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -218,30 +242,19 @@ export default function Home() {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [newInv, setNewInv] = useState({ date: "", invoiceNo: "", company: "HPCL", terminal: "", qty: "", netAmt: "" });
   const [newBG, setNewBG] = useState({ company: "HPCL", bgAmount: "", marginPct: 15, commissionPct: 0.8, bgStartDate: "", bgEndDate: "", bankName: "", bgNo: "", stampDuty: 300, claimExpiry: "" });
-  useEffect(() => {
-    if (cloudLoaded || cloudStateQuery.isLoading) return;
-
-    const cloudState = cloudStateQuery.data;
-    if (cloudState) {
-      const restoredInvoices = Array.isArray(cloudState.invoices) ? cloudState.invoices : INITIAL_INVOICES;
-      const missingReportedInvoice = !restoredInvoices.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO);
-      setInvoices(missingReportedInvoice ? [...restoredInvoices, buildReportedRestoreInvoice(restoredInvoices)].sort((a, b) => new Date(a.date) - new Date(b.date) || Number(a.id) - Number(b.id)) : restoredInvoices);
-      setBgs(Array.isArray(cloudState.bgs) ? cloudState.bgs : INITIAL_BGS);
-      setPaymentHistory(Array.isArray(cloudState.paymentHistory) ? cloudState.paymentHistory : []);
-    }
-
-    setCloudLoaded(true);
-  }, [cloudLoaded, cloudStateQuery.data, cloudStateQuery.isLoading]);
+  const importInputRef = useRef(null);
 
   useEffect(() => {
-    if (!cloudLoaded) return;
+    window.localStorage.setItem("bgpt.invoices", JSON.stringify(invoices));
+  }, [invoices]);
 
-    const timeout = window.setTimeout(() => {
-      saveTrackerState.mutate({ invoices, bgs, paymentHistory });
-    }, 500);
+  useEffect(() => {
+    window.localStorage.setItem("bgpt.bgs", JSON.stringify(bgs));
+  }, [bgs]);
 
-    return () => window.clearTimeout(timeout);
-  }, [cloudLoaded, invoices, bgs, paymentHistory]);
+  useEffect(() => {
+    window.localStorage.setItem("bgpt.paymentHistory", JSON.stringify(paymentHistory));
+  }, [paymentHistory]);
 
   const stats = useMemo(() => {
     const totalOutstanding = invoices.reduce((s, i) => s + getPendingAmt(i), 0);
@@ -593,6 +606,7 @@ export default function Home() {
   function handleRestoreReportedInvoice() {
     setInvoices(prev => {
       if (prev.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO)) return prev;
+      window.localStorage.setItem("bgpt.restored.GJ0160012325", "true");
       return [...prev, buildReportedRestoreInvoice(prev)].sort((a, b) => new Date(a.date) - new Date(b.date) || Number(a.id) - Number(b.id));
     });
   }
@@ -655,6 +669,64 @@ export default function Home() {
 
   function handleDeleteBG(id) {
     setBgs(prev => prev.filter(b => b.id !== id));
+  }
+
+  function handleExportData() {
+    const backup = {
+      app: "BG Payment Tracker",
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      note: "Import this JSON file in another browser to copy the same invoices, BG details, and payment history. Static GitHub Pages data is saved per browser.",
+      invoices,
+      bgs,
+      paymentHistory,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bg-payment-tracker-backup-${TODAY}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportClick() {
+    importInputRef.current?.click();
+  }
+
+  function handleImportData(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || "{}"));
+        if (!Array.isArray(parsed.invoices) || !Array.isArray(parsed.bgs) || !Array.isArray(parsed.paymentHistory)) {
+          window.alert("Invalid backup file. Please select a BG Payment Tracker JSON export file.");
+          return;
+        }
+
+        const confirmImport = window.confirm(
+          `Import backup data from ${file.name}?\n\nThis will replace this browser's current invoices, BG details, and payment history with the data from the selected file.`
+        );
+        if (!confirmImport) return;
+
+        setInvoices(parsed.invoices);
+        setBgs(parsed.bgs);
+        setPaymentHistory(parsed.paymentHistory);
+        if (parsed.invoices.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO)) {
+          window.localStorage.setItem("bgpt.restored.GJ0160012325", "true");
+        }
+        window.alert("Data imported successfully. Dashboard totals now use the imported invoice list.");
+      } catch {
+        window.alert("Could not read this backup file. Please select a valid JSON export.");
+      }
+    };
+    reader.readAsText(file);
   }
 
   function generatePDFReport() {
@@ -755,12 +827,12 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
               {t === "dashboard" ? "Dashboard" : t === "invoices" ? "Invoices" : t === "payments" ? "Payment History" : t === "bg_details" ? "BG Details" : "BG Report"}
             </button>
           ))}
-          <span style={{ background: "rgba(16,185,129,0.16)", color: "#d1fae5", border: "1px solid rgba(209,250,229,0.28)", borderRadius: 999, padding: "8px 12px", fontSize: 12, fontWeight: 700 }}>
-            {cloudStateQuery.isLoading ? "Loading cloud data..." : saveTrackerState.isPending ? "Saving to cloud..." : saveTrackerState.isError ? "Cloud save needs retry" : "Cloud saved"}
-          </span>
+          <button onClick={handleExportData} style={{ ...btnSecondary, background: "rgba(255,255,255,0.12)", color: "white", border: "1px solid rgba(255,255,255,0.28)" }}>Export Data</button>
+          <button onClick={handleImportClick} style={{ ...btnSecondary, background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.22)" }}>Import Data</button>
+          <input ref={importInputRef} type="file" accept="application/json,.json" onChange={handleImportData} style={{ display: "none" }} />
         </div>
         <div style={{ marginTop: 10, fontSize: 11, color: "#cbd5e1", maxWidth: 760 }}>
-          Your invoices, bank guarantees, and payment history are saved to the authenticated cloud database for this app. Import and export backups are no longer required.
+          New browser showing different data? Use <b>Export Data</b> in the old browser, then <b>Import Data</b> here. This static app saves working data inside each browser.
         </div>
       </div>
 

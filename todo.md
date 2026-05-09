@@ -128,3 +128,19 @@
 - [x] Persist invoices, bank guarantees, and payment history in the authenticated cloud database instead of localStorage.
 - [x] Ensure payment allocation, edits, deletes, restore actions, and reports read from cloud-backed data.
 - [x] Add automated tests for cloud-backed tracker procedures and core calculations.
+
+# Live Web App Request
+
+- [x] Confirm the latest checkpoint is ready for Manus publishing.
+- [x] Explain that publishing must be done with the Manus Publish button, not by pushing to GitHub.
+- [x] Share the available Manus-hosted domain or the exact publishing step for the user.
+
+# Static GitHub Pages JSON Deployment Request
+
+- [ ] Restore the tracker as a client-only React SPA for GitHub Pages.
+- [ ] Use browser JSON/localStorage persistence for invoices, bank guarantees, and payment history.
+- [ ] Remove runtime dependency on server, authentication, tRPC, and database for the GitHub Pages deployment.
+- [ ] Configure Vite base path and routing for /bg-payment-tracker/.
+- [ ] Add or update GitHub Actions deployment to publish the static build to GitHub Pages.
+- [ ] Push the static deployment changes to GitHub main.
+- [ ] Verify https://siddharthpsp.github.io/bg-payment-tracker/ is live with the JSON/localStorage version.
