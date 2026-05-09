@@ -57,5 +57,18 @@
 - [x] Add a lump-sum payment input that can allocate amounts sequentially across unpaid invoices.
 - [x] Update invoice records so fully covered invoices become paid and the final partially covered invoice keeps the unpaid pending balance.
 - [x] Ensure dashboard totals use pending amounts rather than original net amounts when partial payments exist.
-- [ ] Build, deploy to GitHub Pages, push source to GitHub, and save a new Manus checkpoint.
+- [x] Build, deploy to GitHub Pages, push source to GitHub, and save a new Manus checkpoint.
 
+
+# GitHub Pages Live Verification
+
+- [x] Confirm the GitHub Pages app opens at the public URL.
+- [x] Verify the deployed JavaScript bundle contains the sequential payment allocation UI.
+- [ ] Share the confirmed live GitHub Pages link with the user.
+
+# Payment Amount Input Focus Bug
+
+- [x] Reproduce and inspect why the payment amount input loses focus after each typed digit.
+- [x] Refactor the payment modal so input focus is preserved while updating the allocation preview.
+- [x] Build and deploy the focus fix to GitHub Pages.
+- [ ] Save a checkpoint and share the confirmed live link with the user.
