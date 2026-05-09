@@ -163,6 +163,16 @@ function StatusBadge({ status, daysLeft }) {
   return <span style={{ background: bg, color, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", letterSpacing: 0.3 }}>{text}</span>;
 }
 
+function Overlay({ children, onClose }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }} onClick={onClose}>
+      <div style={{ background: "white", borderRadius: 16, padding: 28, width: 440, maxHeight: "85vh", overflowY: "auto", boxShadow: "0 25px 50px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [invoices, setInvoices] = useState(() => {
     try {
@@ -535,14 +545,6 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
   const btnPrimary = { background: "#1a56db", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
   const btnSecondary = { background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
   const tabStyle = (active) => ({ padding: "10px 22px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: active ? "#1a56db" : "#f1f5f9", color: active ? "white" : "#64748b", transition: "all 0.15s" });
-
-  const Overlay = ({ children, onClose }) => (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }} onClick={onClose}>
-      <div style={{ background: "white", borderRadius: 16, padding: 28, width: 440, maxHeight: "85vh", overflowY: "auto", boxShadow: "0 25px 50px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", background: "#f6f8fb", minHeight: "100vh", padding: "0 0 40px 0", color: "#1e293b" }}>
