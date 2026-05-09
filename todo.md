@@ -36,6 +36,7 @@
 - [ ] Update the BG Payment Tracker dashboard to include the Excel dashboard details while preserving the existing Swiss Financial Modernism interface.
 - [ ] Rebuild and republish the GitHub Pages version so the live GitHub URL reflects the new dashboard content.
 - [ ] Verify the live app opens correctly after publishing and summarize the added details for the user.
+<<<<<<< HEAD
 
 # Remove Date-wise Invoice Table
 
@@ -72,3 +73,5 @@
 - [x] Refactor the payment modal so input focus is preserved while updating the allocation preview.
 - [ ] Build and deploy the focus fix to GitHub Pages.
 - [ ] Save a checkpoint and share the confirmed live link with the user.
+=======
+>>>>>>> 25fb376 (Add Excel dashboard details to tracker)
