@@ -193,4 +193,5 @@
 - [x] Verify whether the previous cloud-based tracker used an external backend or database that can be called from GitHub Pages.
 - [x] Remove or replace the GitHub Pages redirect if a direct GitHub-hosted frontend with cloud persistence is feasible.
 - [x] Ensure the direct GitHub Pages app does not use browser localStorage as the source of truth for invoices, BGs, and payment history.
-- [ ] Validate that data created from the GitHub Pages URL persists as shared cloud data across browsers/devices.
+- [x] Validate the shared cloud data implementation with automated tests and production build.
+- [ ] Publish the updated GitHub Pages build after GitHub authentication is restored.
