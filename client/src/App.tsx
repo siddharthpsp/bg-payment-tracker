@@ -9,6 +9,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
  * The route shell keeps the tracker as a focused single-screen finance operations app.
  */
 import Home from "./pages/Home";
+import HomeJsonBin from "./pages/HomeJsonBin";
+
+// Use JsonBin version if Master Key is configured
+const HomeComponent = import.meta.env.VITE_JSONBIN_MASTER_KEY ? HomeJsonBin : Home;
 
 function Router() {
   const basePath = import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -16,7 +20,7 @@ function Router() {
   return (
     <WouterRouter base={basePath}>
       <Switch>
-        <Route path={"/"} component={Home} />
+        <Route path={"/"} component={HomeComponent} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
         <Route component={NotFound} />

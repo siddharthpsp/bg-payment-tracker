@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BG Payment Tracker - JsonBin Cloud Storage</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { margin-bottom: 30px; }
+    h1 { font-size: 24px; margin-bottom: 10px; }
+    .status { padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+    .status.loading { background: rgba(59, 130, 246, 0.1); color: #93c5fd; }
+    .status.error { background: rgba(248, 113, 113, 0.1); color: #fca5a5; }
+    .status.success { background: rgba(34, 197, 94, 0.1); color: #86efac; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; }
+    input, textarea { width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 6px; background: #1e293b; color: #e2e8f0; font-family: monospace; }
+    button { padding: 10px 20px; border: none; border-radius: 6px; background: #3b82f6; color: white; cursor: pointer; font-weight: 600; }
+    button:hover { background: #2563eb; }
+    .data-display { background: #1e293b; padding: 20px; border-radius: 8px; border: 1px solid #334155; }
+    pre { overflow-x: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>BG Payment Tracker - JsonBin Cloud Storage</h1>
+      <p>Direct GitHub Pages hosting with JsonBin cloud persistence</p>
+    </div>
+
+    <div id="status" class="status loading">Initializing...</div>
+
+    <div class="form-group">
+      <label>Master Key (from JsonBin):</label>
+      <input type="password" id="masterKey" placeholder="Paste your JsonBin Master Key here">
+      <button onclick="saveMasterKey()">Save Master Key</button>
+    </div>
+
+    <div class="form-group">
+      <label>Tracker Data (JSON):</label>
+      <textarea id="trackerData" rows="10" placeholder='{"invoices": [], "bgs": [], "paymentHistory": []}'></textarea>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button onclick="createBin()">Create New Bin</button>
+      <button onclick="loadBin()">Load from Bin</button>
+      <button onclick="saveBin()">Save to Bin</button>
+    </div>
+
+    <div class="form-group">
+      <label>Bin ID:</label>
+      <input type="text" id="binId" placeholder="Auto-generated or enter existing bin ID" readonly>
+    </div>
+
+    <div class="data-display">
+      <h3>Response:</h3>
+      <pre id="response">Ready...</pre>
+    </div>
+  </div>
+
+  <script>
+    const JSONBIN_API_URL = 'https://api.jsonbin.io/v3';
+    const STORAGE_KEY_MASTER = 'jsonbin_master_key';
+    const STORAGE_KEY_BIN = 'jsonbin_bin_id';
+
+    function log(msg, type = 'info') {
+      const status = document.getElementById('status');
+      status.textContent = msg;
+      status.className = `status ${type}`;
+      console.log(`[${type}]`, msg);
+    }
+
+    function response(msg) {
+      document.getElementById('response').textContent = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2);
+    }
+
+    function getMasterKey() {
+      return document.getElementById('masterKey').value || localStorage.getItem(STORAGE_KEY_MASTER);
+    }
+
+    function getBinId() {
+      return document.getElementById('binId').value || localStorage.getItem(STORAGE_KEY_BIN);
+    }
+
+    function setBinId(id) {
+      document.getElementById('binId').value = id;
+      localStorage.setItem(STORAGE_KEY_BIN, id);
+    }
+
+    function saveMasterKey() {
+      const key = document.getElementById('masterKey').value;
+      if (!key) {
+        log('Please enter a Master Key', 'error');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY_MASTER, key);
+      log('Master Key saved to browser storage', 'success');
+    }
+
+    async function createBin() {
+      const masterKey = getMasterKey();
+      if (!masterKey) {
+        log('Master Key not configured. Please save it first.', 'error');
+        return;
+      }
+
+      try {
+        log('Creating new bin...', 'loading');
+        const data = JSON.parse(document.getElementById('trackerData').value || '{}');
+        
+        const res = await fetch(`${JSONBIN_API_URL}/b`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': masterKey,
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const result = await res.json();
+        const binId = result.metadata.id;
+        setBinId(binId);
+        log(`Bin created: ${binId}`, 'success');
+        response(result);
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error');
+        response(err.message);
+      }
+    }
+
+    async function loadBin() {
+      const masterKey = getMasterKey();
+      const binId = getBinId();
+      
+      if (!masterKey) {
+        log('Master Key not configured', 'error');
+        return;
+      }
+      if (!binId) {
+        log('Bin ID not set', 'error');
+        return;
+      }
+
+      try {
+        log('Loading bin...', 'loading');
+        const res = await fetch(`${JSONBIN_API_URL}/b/${binId}`, {
+          method: 'GET',
+          headers: { 'X-Master-Key': masterKey },
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const result = await res.json();
+        document.getElementById('trackerData').value = JSON.stringify(result.record, null, 2);
+        log('Bin loaded successfully', 'success');
+        response(result);
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error');
+        response(err.message);
+      }
+    }
+
+    async function saveBin() {
+      const masterKey = getMasterKey();
+      const binId = getBinId();
+      
+      if (!masterKey) {
+        log('Master Key not configured', 'error');
+        return;
+      }
+      if (!binId) {
+        log('Bin ID not set', 'error');
+        return;
+      }
+
+      try {
+        log('Saving bin...', 'loading');
+        const data = JSON.parse(document.getElementById('trackerData').value || '{}');
+        
+        const res = await fetch(`${JSONBIN_API_URL}/b/${binId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': masterKey,
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const result = await res.json();
+        log('Bin saved successfully', 'success');
+        response(result);
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error');
+        response(err.message);
+      }
+    }
+
+    // Load saved values on page load
+    window.addEventListener('load', () => {
+      const savedKey = localStorage.getItem(STORAGE_KEY_MASTER);
+      const savedBin = localStorage.getItem(STORAGE_KEY_BIN);
+      
+      if (savedKey) document.getElementById('masterKey').value = savedKey;
+      if (savedBin) document.getElementById('binId').value = savedBin;
+      
+      log('Ready. Configure your Master Key to get started.', 'success');
+    });
+  </script>
+</body>
+</html>
