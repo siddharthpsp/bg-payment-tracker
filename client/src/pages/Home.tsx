@@ -265,6 +265,60 @@ export default function Home() {
     return { totalOutstanding, totalPaid, overdue, dueSoon, totalBG, totalMargin };
   }, [invoices, bgs]);
 
+  const liveDashboard = useMemo(() => {
+    const summarizeRows = (rows, field) => {
+      const summary = new Map();
+      rows.forEach(inv => {
+        const key = inv[field] || "Unassigned";
+        const qtyMt = Number(inv.qty || 0);
+        const net = Number(inv.netAmt || 0);
+        const taxable = net / 1.18;
+        const gst = Math.max(0, net - taxable);
+        const current = summary.get(key) || { particular: key, qtyMt: 0, qtyTon: 0, taxable: 0, cgst: 0, sgst: 0, net: 0, trips: 0, avgRate: 0 };
+        current.qtyMt += qtyMt;
+        current.qtyTon += qtyMt;
+        current.taxable += taxable;
+        current.cgst += gst / 2;
+        current.sgst += gst / 2;
+        current.net += net;
+        current.trips += 1;
+        current.avgRate = current.qtyMt > 0 ? current.taxable / current.qtyMt : 0;
+        summary.set(key, current);
+      });
+      return Array.from(summary.values()).sort((a, b) => a.particular.localeCompare(b.particular));
+    };
+
+    const overall = invoices.reduce((acc, inv) => {
+      const qtyMt = Number(inv.qty || 0);
+      const net = Number(inv.netAmt || 0);
+      const taxable = net / 1.18;
+      const gst = Math.max(0, net - taxable);
+      acc.qtyMt += qtyMt;
+      acc.qtyTon += qtyMt;
+      acc.taxable += taxable;
+      acc.cgst += gst / 2;
+      acc.sgst += gst / 2;
+      acc.net += net;
+      acc.trips += 1;
+      acc.avgRate = acc.qtyMt > 0 ? acc.taxable / acc.qtyMt : 0;
+      return acc;
+    }, { particular: "Bitumen VG40 (Live Total)", qtyMt: 0, qtyTon: 0, taxable: 0, cgst: 0, sgst: 0, net: 0, trips: 0, avgRate: 0 });
+
+    const dates = invoices.map(inv => inv.date).filter(Boolean).sort();
+    const period = dates.length ? `Live invoice period: ${formatDate(dates[0])} - ${formatDate(dates[dates.length - 1])}` : "Live invoice period: No invoices";
+
+    return {
+      title: "NH PACKAGE 03 & 04 AMD-RAJKOT — LIVE BITUMEN DASHBOARD",
+      period,
+      material: `${EXCEL_DASHBOARD.material} • auto-updates with invoice list`,
+      overall,
+      terminalBreakdown: summarizeRows(invoices, "terminal"),
+      companyBreakdown: summarizeRows(invoices, "company"),
+    };
+  }, [invoices]);
+
+  const dashboardRefreshKey = `${invoices.length}-${Math.round(stats.totalOutstanding)}-${Math.round(stats.totalPaid)}-${stats.dueSoon}-${stats.overdue}`;
+
   const bgDetails = useMemo(() => {
     // Group BGs by company and sort by amount (smallest first) for sequential utilization
     const companyBGs = {};
@@ -720,7 +774,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
       <div style={{ padding: "20px 28px" }}>
         {/* ===== DASHBOARD TAB ===== */}
         {tab === "dashboard" && (
-          <>
+          <div key={dashboardRefreshKey}>
             {/* KPI Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14, marginBottom: 22 }}>
               <div style={cardStyle}>
@@ -750,28 +804,28 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
             </div>
 
 
-            {/* Excel Dashboard Summary */}
+            {/* Live Dashboard Summary: recalculates from current invoice state after add, edit, delete, and payment reversal actions. */}
             <div style={{ ...cardStyle, marginBottom: 18, border: "1px solid #dbe7f3" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.2 }}>{EXCEL_DASHBOARD.title}</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{EXCEL_DASHBOARD.period}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.2 }}>{liveDashboard.title}</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{liveDashboard.period}</div>
                 </div>
-                <div style={{ background: "#ecfdf5", color: "#047857", border: "1px solid #bbf7d0", borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 700 }}>{EXCEL_DASHBOARD.material}</div>
+                <div style={{ background: "#ecfdf5", color: "#047857", border: "1px solid #bbf7d0", borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 700 }}>{liveDashboard.material}</div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 18 }}>
-                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Total Qty</div><div style={{ ...valStyle, fontSize: 22 }}>{formatQty(EXCEL_DASHBOARD.overall.qtyMt)} MT</div></div>
-                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Taxable Value</div><div style={{ ...valStyle, fontSize: 22, color: "#0f766e" }}>{formatCurrency(EXCEL_DASHBOARD.overall.taxable)}</div></div>
-                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Net Amount</div><div style={{ ...valStyle, fontSize: 22, color: "#1a56db" }}>{formatCurrency(EXCEL_DASHBOARD.overall.net)}</div></div>
-                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Trips</div><div style={{ ...valStyle, fontSize: 22 }}>{EXCEL_DASHBOARD.overall.trips}</div></div>
-                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Avg Rate / MT</div><div style={{ ...valStyle, fontSize: 22, color: "#b45309" }}>{formatRate(EXCEL_DASHBOARD.overall.avgRate)}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Total Qty</div><div style={{ ...valStyle, fontSize: 22 }}>{formatQty(liveDashboard.overall.qtyMt)} MT</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Taxable Value</div><div style={{ ...valStyle, fontSize: 22, color: "#0f766e" }}>{formatCurrency(liveDashboard.overall.taxable)}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Net Amount</div><div style={{ ...valStyle, fontSize: 22, color: "#1a56db" }}>{formatCurrency(liveDashboard.overall.net)}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Trips</div><div style={{ ...valStyle, fontSize: 22 }}>{liveDashboard.overall.trips}</div></div>
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 14 }}><div style={labelStyle}>Avg Rate / MT</div><div style={{ ...valStyle, fontSize: 22, color: "#b45309" }}>{formatRate(liveDashboard.overall.avgRate)}</div></div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 16, marginBottom: 18 }}>
                 {[
-                  { title: "Terminal-wise Breakdown", rows: EXCEL_DASHBOARD.terminalBreakdown },
-                  { title: "Company-wise Breakdown", rows: EXCEL_DASHBOARD.companyBreakdown },
+                  { title: "Terminal-wise Breakdown", rows: liveDashboard.terminalBreakdown },
+                  { title: "Company-wise Breakdown", rows: liveDashboard.companyBreakdown },
                 ].map(section => (
                   <div key={section.title} style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
                     <div style={{ background: "#0f172a", color: "white", padding: "10px 12px", fontSize: 12, fontWeight: 700 }}>{section.title}</div>
@@ -884,7 +938,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                 </table>
               )}
             </div>
-          </>
+            </div>
         )}
 
         {/* ===== INVOICES TAB ===== */}

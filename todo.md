@@ -99,3 +99,10 @@
 - [x] Improve partial-payment removal messaging and behavior so users can remove the payment entry from Payment History and reverse the invoice allocation.
 - [x] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
 
+
+# Dashboard Refresh After Invoice Changes
+
+- [x] Inspect dashboard summary cards, due lists, and visual effects that depend on invoice data.
+- [x] Fix any cached or non-reactive dashboard calculations so adding invoices updates dashboard totals immediately.
+- [x] Fix invoice deletion so dashboard totals, pending amount, paid amount, and due sections update immediately.
+- [ ] Validate build, deploy to GitHub Pages, push source, verify live markers, and save a checkpoint.
