@@ -157,3 +157,26 @@
 - [x] Add a visible cloud-load error and retry state for failed initial database fetches.
 - [x] Add automated coverage for add, edit, delete, direct payment allocation, payment deletion, and restore flows using the cloud-backed tracker state.
 - [x] Verify that refreshed authenticated sessions restore updated invoices, BGs, and payment history from cloud state.
+
+# GitHub Pages Static JSON Live App Request
+
+- [x] Superseded by user correction: preserve the latest cloud-backed Manus checkpoint and do not prepare a browser-storage static version.
+- [x] Superseded by user correction: do not restore or convert the tracker to client-only JSON/localStorage persistence.
+- [x] Superseded by user correction: keep server, authentication, tRPC, and database for cloud storage.
+- [x] Superseded by user correction: static build deployment validation is not applicable to the cloud-storage requirement.
+- [x] Superseded by user correction: do not deploy a static browser-storage build to GitHub Pages.
+- [x] Superseded by user correction: explain the valid cloud-backed live option instead of reporting a static GitHub Pages link.
+
+# Cloud-Based GitHub Live Requirement Correction
+
+- [x] Keep the BG Payment Tracker using cloud-based data storage; do not convert it to browser-only localStorage or JSON persistence.
+- [x] Verify whether the current database-backed server application can be hosted directly on GitHub Pages.
+- [x] Preserve the existing cloud-backed Manus checkpoint and avoid overwriting it with a static browser-storage build.
+- [x] Explain the correct live deployment option for a cloud-backed app and, if GitHub is still required, clarify what type of GitHub integration is possible.
+
+# GitHub Pages URL as Cloud App Entry Point
+
+- [x] Confirm that `https://siddharthpsp.github.io/bg-payment-tracker/` cannot directly run the cloud-backed Node/tRPC/database app because GitHub Pages is static hosting.
+- [x] Preserve the cloud-backed Manus app and avoid any browser/localStorage conversion.
+- [x] Prepare a GitHub Pages static entry page or redirect to the Manus-hosted cloud app if the exact GitHub Pages URL must be used as the access link.
+- [x] Validate the GitHub Pages URL behavior and report the final live access instructions to the user.
