@@ -79,6 +79,25 @@ const EXCEL_DASHBOARD = {
 };
 
 const TODAY = "2026-05-09";
+const REPORTED_RESTORE_INVOICE_NO = "GJ0160012325";
+const REPORTED_RESTORE_INVOICE = {
+  id: 14,
+  date: "2026-05-05",
+  invoiceNo: "GJ0160012325",
+  company: "HPCL",
+  terminal: "HPCL PIPAVAV",
+  qty: 28.50,
+  netAmt: 2967174.90,
+  dueDate: "2026-06-04",
+  paidDate: "2026-05-08",
+  paidAmt: 1686607.20,
+  status: "partial",
+};
+
+function buildReportedRestoreInvoice(existingInvoices = []) {
+  const idTaken = existingInvoices.some(inv => Number(inv.id) === Number(REPORTED_RESTORE_INVOICE.id));
+  return { ...REPORTED_RESTORE_INVOICE, id: idTaken ? Date.now() : REPORTED_RESTORE_INVOICE.id };
+}
 
 function addDays(dateStr, days) {
   const d = new Date(dateStr);
@@ -177,7 +196,17 @@ export default function Home() {
   const [invoices, setInvoices] = useState(() => {
     try {
       const saved = window.localStorage.getItem("bgpt.invoices");
-      return saved ? JSON.parse(saved) : INITIAL_INVOICES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const alreadyRestored = window.localStorage.getItem("bgpt.restored.GJ0160012325") === "true";
+        const missingReportedInvoice = Array.isArray(parsed) && !parsed.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO);
+        if (missingReportedInvoice && !alreadyRestored) {
+          window.localStorage.setItem("bgpt.restored.GJ0160012325", "true");
+          return [...parsed, buildReportedRestoreInvoice(parsed)].sort((a, b) => new Date(a.date) - new Date(b.date) || Number(a.id) - Number(b.id));
+        }
+        return parsed;
+      }
+      return INITIAL_INVOICES;
     } catch {
       return INITIAL_INVOICES;
     }
@@ -502,11 +531,61 @@ export default function Home() {
   }
 
   function handleDeleteInvoice(id) {
+    const invoice = invoices.find(i => i.id === id);
+    if (!invoice) return;
+
+    const paid = getPaidAmt(invoice);
+    if (paid > 0) {
+      window.alert(`Invoice ${invoice.invoiceNo} has ${formatAmt(paid)} adjusted against it. Please use Remove Payment first, then delete the invoice if still required.`);
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Delete invoice ${invoice.invoiceNo}?\n\nCompany: ${invoice.company}\nTerminal: ${invoice.terminal}\nAmount: ${formatAmt(invoice.netAmt)}\n\nThis action will remove the invoice from the invoice list.`
+    );
+    if (!confirmDelete) return;
+
     setInvoices(prev => prev.filter(i => i.id !== id));
   }
 
-  function handleUndoPay(id) {
+  function handleRestoreReportedInvoice() {
+    setInvoices(prev => {
+      if (prev.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO)) return prev;
+      window.localStorage.setItem("bgpt.restored.GJ0160012325", "true");
+      return [...prev, buildReportedRestoreInvoice(prev)].sort((a, b) => new Date(a.date) - new Date(b.date) || Number(a.id) - Number(b.id));
+    });
+  }
+
+  function handleRemoveInvoicePayments(id) {
+    const invoice = invoices.find(i => i.id === id);
+    if (!invoice) return;
+
+    const paid = getPaidAmt(invoice);
+    if (paid <= 0) return;
+
+    const confirmRemove = window.confirm(
+      `Remove payment adjustment from invoice ${invoice.invoiceNo}?\n\nThis will reverse ${formatAmt(paid)} from this invoice and move the same amount back to unadjusted excess in Payment History.`
+    );
+    if (!confirmRemove) return;
+
     setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: "unpaid", paidDate: null, paidAmt: 0 } : i));
+    setPaymentHistory(prev => prev.map(payment => {
+      const allocations = payment.allocations || [];
+      const removedAmount = allocations
+        .filter(row => row.invoiceId === id)
+        .reduce((sum, row) => sum + Number(row.amountAdjusted || 0), 0);
+
+      if (!removedAmount) return payment;
+
+      const remainingAllocations = allocations.filter(row => row.invoiceId !== id);
+      const allocatedAmount = Math.max(0, Number(payment.allocatedAmount || 0) - removedAmount);
+      const unallocatedAmount = Math.max(0, Number(payment.unallocatedAmount || 0) + removedAmount);
+      return { ...payment, allocations: remainingAllocations, allocatedAmount, unallocatedAmount };
+    }));
+  }
+
+  function handleUndoPay(id) {
+    handleRemoveInvoicePayments(id);
   }
 
   function openEditBG(bg) {
@@ -827,6 +906,9 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                 <option value="due_soon">Due in 7 days</option>
               </select>
               <div style={{ flex: 1 }} />
+              {!invoices.some(inv => inv.invoiceNo === REPORTED_RESTORE_INVOICE_NO) && (
+                <button onClick={handleRestoreReportedInvoice} style={{ ...btnSecondary, background: "#0f766e", color: "white", border: "none" }}>Restore GJ0160012325</button>
+              )}
               <button onClick={generatePDFReport} style={{ ...btnSecondary, background: "#dc2626", color: "white", border: "none" }}>📄 PDF Report</button>
               <button onClick={() => openDirectPayment()} style={{ ...btnPrimary, background: "#16a34a" }}>+ Direct Payment</button>
               <button onClick={() => setShowAddInvoice(true)} style={btnPrimary}>+ Add Invoice</button>
@@ -864,18 +946,11 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                           <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>{inv.paidDate ? formatDate(inv.paidDate) : "-"}</td>
                           <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>
                             <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                              {status !== "paid" ? (
-                                <>
-                                  <button onClick={() => openPaymentModal(inv)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Pay Company ✓</button>
-                                  <button onClick={() => openEditInvoice(inv)} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Edit</button>
-                                  <button onClick={() => handleDeleteInvoice(inv.id)} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✕</button>
-                                </>
-                              ) : (
-                                <>
-                                  <span style={{ color: "#16a34a", fontWeight: 600, fontSize: 11 }}>✓ Cleared</span>
-                                  <button onClick={() => handleUndoPay(inv.id)} style={{ background: "#94a3b8", color: "white", border: "none", borderRadius: 6, padding: "4px 8px", fontSize: 10, fontWeight: 600, cursor: "pointer", marginLeft: 4 }}>Undo</button>
-                                </>
-                              )}
+                              {status === "paid" && <span style={{ color: "#16a34a", fontWeight: 600, fontSize: 11 }}>✓ Cleared</span>}
+                              {status !== "paid" && <button onClick={() => openPaymentModal(inv)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Pay Company ✓</button>}
+                              <button onClick={() => openEditInvoice(inv)} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Edit</button>
+                              {paid > 0 && <button onClick={() => handleRemoveInvoicePayments(inv.id)} style={{ background: "#64748b", color: "white", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Remove Payment</button>}
+                              <button onClick={() => handleDeleteInvoice(inv.id)} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Delete</button>
                             </div>
                           </td>
                         </tr>
