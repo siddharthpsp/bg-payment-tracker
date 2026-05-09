@@ -4,6 +4,10 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+/**
+ * Design philosophy: Swiss Financial Modernism.
+ * The route shell keeps the tracker as a focused single-screen finance operations app.
+ */
 import Home from "./pages/Home";
 
 
