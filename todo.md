@@ -72,3 +72,12 @@
 - [x] Refactor the payment modal so input focus is preserved while updating the allocation preview.
 - [ ] Build and deploy the focus fix to GitHub Pages.
 - [ ] Save a checkpoint and share the confirmed live link with the user.
+
+# Date-wise Lump-Sum Payment History
+
+- [x] Inspect the current direct payment state and sequential allocation handler.
+- [x] Store each direct payment entry with payment date, company, amount received, and allocation details.
+- [x] Add a date-wise payment history section or tab showing lump-sum payments clearly.
+- [x] Show which invoices each payment adjusted, including fully paid and partly paid balances.
+- [ ] Build, deploy to GitHub Pages, push source to GitHub, and save a new checkpoint.
+
