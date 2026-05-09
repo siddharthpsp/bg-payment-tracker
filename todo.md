@@ -88,5 +88,5 @@
 - [x] Add a delete button for each date-wise payment history entry.
 - [x] When a payment is deleted, reverse only that payment’s allocated amounts from the affected invoices.
 - [x] Recalculate invoice status as paid, partly paid, or pending after deletion.
-- [ ] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
+- [x] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
 
