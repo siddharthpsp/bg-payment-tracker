@@ -114,3 +114,17 @@
 - [x] Add an Import Data button so the same invoices, BGs, and payment history can be restored in another browser.
 - [x] Add clear in-app guidance explaining that static GitHub Pages data is browser-specific unless a database-backed version is added.
 - [x] Validate build, deploy to GitHub Pages, push source, verify live markers, and save a checkpoint.
+
+# Cloud Saving Requirement
+- [x] Remove export/import as the primary answer to cross-browser data differences.
+- [x] Upgrade the static app to a database-backed version so data is saved in the cloud.
+- [x] Create persistent storage for invoices, BG details, and payment history.
+- [x] Load saved cloud data on app open so a new browser shows the same working data.
+- [x] Save add, edit, delete, restore, payment, and payment-reversal changes to cloud storage.
+- [x] Validate cloud procedures with automated tests, verify the database-backed app health, and save a checkpoint.
+
+# Cloud Database Persistence Correction
+- [x] Remove browser-only import/export controls from the tracker UI.
+- [x] Persist invoices, bank guarantees, and payment history in the authenticated cloud database instead of localStorage.
+- [x] Ensure payment allocation, edits, deletes, restore actions, and reports read from cloud-backed data.
+- [x] Add automated tests for cloud-backed tracker procedures and core calculations.
