@@ -117,7 +117,23 @@ function formatCurrency(n) {
 }
 
 function formatAmt(n) {
-  return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  return "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+}
+
+function getPaidAmt(inv) {
+  return Math.min(Number(inv.netAmt || 0), Math.max(0, Number(inv.paidAmt || 0)));
+}
+
+function getPendingAmt(inv) {
+  return Math.max(0, Number(inv.netAmt || 0) - getPaidAmt(inv));
+}
+
+function getInvoiceStatus(inv) {
+  const paid = getPaidAmt(inv);
+  const net = Number(inv.netAmt || 0);
+  if (net > 0 && paid >= net - 0.01) return "paid";
+  if (paid > 0) return "partial";
+  return "unpaid";
 }
 
 
@@ -133,6 +149,8 @@ function StatusBadge({ status, daysLeft }) {
   let bg, color, text;
   if (status === "paid") {
     bg = "#dcfce7"; color = "#15803d"; text = "PAID ✓";
+  } else if (status === "partial") {
+    bg = "#e0f2fe"; color = "#0369a1"; text = "PARTLY PAID";
   } else if (daysLeft < 0) {
     bg = "#fecaca"; color = "#b91c1c"; text = `OVERDUE ${Math.abs(daysLeft)}d`;
   } else if (daysLeft <= 5) {
@@ -173,6 +191,7 @@ export default function Home() {
   const [editInv, setEditInv] = useState(null);
   const [editBG, setEditBG] = useState(null);
   const [payDate, setPayDate] = useState(TODAY);
+  const [paymentAmount, setPaymentAmount] = useState("");
   const [newInv, setNewInv] = useState({ date: "", invoiceNo: "", company: "HPCL", terminal: "", qty: "", netAmt: "" });
   const [newBG, setNewBG] = useState({ company: "HPCL", bgAmount: "", marginPct: 15, commissionPct: 0.8, bgStartDate: "", bgEndDate: "", bankName: "", bgNo: "", stampDuty: 300, claimExpiry: "" });
 
@@ -185,10 +204,10 @@ export default function Home() {
   }, [bgs]);
 
   const stats = useMemo(() => {
-    const totalOutstanding = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.netAmt, 0);
-    const totalPaid = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.paidAmt, 0);
-    const overdue = invoices.filter(i => i.status !== "paid" && daysUntil(i.dueDate) < 0).length;
-    const dueSoon = invoices.filter(i => i.status !== "paid" && daysUntil(i.dueDate) >= 0 && daysUntil(i.dueDate) <= 7).length;
+    const totalOutstanding = invoices.reduce((s, i) => s + getPendingAmt(i), 0);
+    const totalPaid = invoices.reduce((s, i) => s + getPaidAmt(i), 0);
+    const overdue = invoices.filter(i => getPendingAmt(i) > 0 && daysUntil(i.dueDate) < 0).length;
+    const dueSoon = invoices.filter(i => getPendingAmt(i) > 0 && daysUntil(i.dueDate) >= 0 && daysUntil(i.dueDate) <= 7).length;
     const totalBG = bgs.reduce((s, b) => s + b.bgAmount, 0);
     const totalMargin = bgs.reduce((s, b) => s + b.marginAmt, 0);
     return { totalOutstanding, totalPaid, overdue, dueSoon, totalBG, totalMargin };
@@ -217,7 +236,7 @@ export default function Home() {
       const monthlyCommission = annualCommission / 12;
 
       // Sequential utilization: calculate how much outstanding falls on THIS BG
-      const totalOutstanding = invoices.filter(i => i.company === bg.company && i.status !== "paid").reduce((s, i) => s + i.netAmt, 0);
+      const totalOutstanding = invoices.filter(i => i.company === bg.company).reduce((s, i) => s + getPendingAmt(i), 0);
       const sameCoBGs = companyBGs[bg.company] || [];
       const myIndex = sameCoBGs.findIndex(b => b.id === bg.id);
       let remaining = totalOutstanding;
@@ -257,14 +276,19 @@ export default function Home() {
   const filteredInvoices = useMemo(() => {
     return invoices.filter(i => {
       if (filterCompany !== "ALL" && i.company !== filterCompany) return false;
-      if (filterStatus === "paid" && i.status !== "paid") return false;
-      if (filterStatus === "unpaid" && i.status === "paid") return false;
-      if (filterStatus === "overdue" && (i.status === "paid" || daysUntil(i.dueDate) >= 0)) return false;
-      if (filterStatus === "due_soon" && (i.status === "paid" || daysUntil(i.dueDate) < 0 || daysUntil(i.dueDate) > 7)) return false;
+      const status = getInvoiceStatus(i);
+      const pending = getPendingAmt(i);
+      if (filterStatus === "paid" && status !== "paid") return false;
+      if (filterStatus === "partial" && status !== "partial") return false;
+      if (filterStatus === "unpaid" && status === "paid") return false;
+      if (filterStatus === "overdue" && (pending <= 0 || daysUntil(i.dueDate) >= 0)) return false;
+      if (filterStatus === "due_soon" && (pending <= 0 || daysUntil(i.dueDate) < 0 || daysUntil(i.dueDate) > 7)) return false;
       return true;
     }).sort((a, b) => {
-      if (a.status === "paid" && b.status !== "paid") return 1;
-      if (a.status !== "paid" && b.status === "paid") return -1;
+      const statusA = getInvoiceStatus(a);
+      const statusB = getInvoiceStatus(b);
+      if (statusA === "paid" && statusB !== "paid") return 1;
+      if (statusA !== "paid" && statusB === "paid") return -1;
       return new Date(a.dueDate) - new Date(b.dueDate);
     });
   }, [invoices, filterCompany, filterStatus]);
@@ -295,10 +319,53 @@ export default function Home() {
     setNewInv({ date: "", invoiceNo: "", company: "HPCL", terminal: "", qty: "", netAmt: "" });
   }
 
+  function openPaymentModal(inv) {
+    setShowPayModal(inv.id);
+    setPaymentAmount(String(getPendingAmt(inv).toFixed(2)));
+  }
+
   function handlePay(id) {
-    setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: "paid", paidDate: payDate, paidAmt: i.netAmt } : i));
+    const amount = Math.max(0, parseFloat(paymentAmount) || 0);
+    if (!amount) return;
+
+    setInvoices(prev => {
+      const selected = prev.find(i => i.id === id);
+      if (!selected) return prev;
+
+      const sequential = prev
+        .filter(i => i.company === selected.company && getPendingAmt(i) > 0)
+        .sort((a, b) => {
+          const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
+          if (dueDiff !== 0) return dueDiff;
+          const dateDiff = new Date(a.date) - new Date(b.date);
+          if (dateDiff !== 0) return dateDiff;
+          return Number(a.id) - Number(b.id);
+        });
+      const selectedIndex = sequential.findIndex(i => i.id === id);
+      const targets = selectedIndex >= 0 ? sequential.slice(selectedIndex) : sequential;
+      const allocation = {};
+      let remaining = amount;
+
+      for (const inv of targets) {
+        if (remaining <= 0) break;
+        const pending = getPendingAmt(inv);
+        const applied = Math.min(pending, remaining);
+        if (applied > 0) allocation[inv.id] = applied;
+        remaining -= applied;
+      }
+
+      return prev.map(inv => {
+        const applied = allocation[inv.id] || 0;
+        if (!applied) return inv;
+        const paidAmt = Math.min(Number(inv.netAmt || 0), getPaidAmt(inv) + applied);
+        const status = paidAmt >= Number(inv.netAmt || 0) - 0.01 ? "paid" : "partial";
+        return { ...inv, paidAmt, paidDate: payDate, status };
+      });
+    });
+
     setShowPayModal(null);
     setPayDate(TODAY);
+    setPaymentAmount("");
   }
 
   function handleAddBG() {
@@ -386,10 +453,10 @@ export default function Home() {
   }
 
   function generatePDFReport() {
-    const unpaid = invoices.filter(i => i.status !== "paid").sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-    const paid = invoices.filter(i => i.status === "paid").sort((a, b) => new Date(b.paidDate) - new Date(a.paidDate));
-    const totalOutstanding = unpaid.reduce((s, i) => s + i.netAmt, 0);
-    const totalPaid = paid.reduce((s, i) => s + i.paidAmt, 0);
+    const unpaid = invoices.filter(i => getPendingAmt(i) > 0).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    const paid = invoices.filter(i => getPaidAmt(i) > 0).sort((a, b) => new Date(b.paidDate || b.date) - new Date(a.paidDate || a.date));
+    const totalOutstanding = unpaid.reduce((s, i) => s + getPendingAmt(i), 0);
+    const totalPaid = paid.reduce((s, i) => s + getPaidAmt(i), 0);
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Payment Report</title>
 <style>
@@ -429,21 +496,21 @@ export default function Home() {
 </div>
 
 ${unpaid.length > 0 ? `<div class="section"><h2>OUTSTANDING / UNPAID INVOICES (${unpaid.length})</h2>
-<table><thead><tr><th>#</th><th>Inv Date</th><th>Invoice No</th><th>Company</th><th>Terminal</th><th class="r">Qty (MT)</th><th class="r">Net Amount</th><th>Due Date</th><th>Days Left</th><th>BG Used</th></tr></thead><tbody>
+<table><thead><tr><th>#</th><th>Inv Date</th><th>Invoice No</th><th>Company</th><th>Terminal</th><th class="r">Qty (MT)</th><th class="r">Net Amount</th><th class="r">Pending</th><th>Due Date</th><th>Days Left</th><th>BG Used</th></tr></thead><tbody>
 ${unpaid.map((inv, i) => {
   const dl = daysUntil(inv.dueDate);
   // Find which BG this invoice falls under
   const sameCoBGs = bgs.filter(b => b.company === inv.company).sort((a, b) => a.bgAmount - b.bgAmount);
   const bgLabel = sameCoBGs.length > 0 ? sameCoBGs.map(b => formatCurrency(b.bgAmount)).join(' → ') : '-';
-  return `<tr class="${dl < 0 ? 'overdue' : ''}"><td>${i+1}</td><td>${formatDate(inv.date)}</td><td class="b">${inv.invoiceNo}</td><td>${inv.company}</td><td>${inv.terminal}</td><td class="r">${inv.qty.toFixed(2)}</td><td class="r b">${formatAmt(inv.netAmt)}</td><td>${formatDate(inv.dueDate)}</td><td class="${dl < 0 ? 'red b' : ''}">${dl < 0 ? 'OVERDUE '+Math.abs(dl)+'d' : dl+'d'}</td><td>${bgLabel}</td></tr>`;
+  return `<tr class="${dl < 0 ? 'overdue' : ''}"><td>${i+1}</td><td>${formatDate(inv.date)}</td><td class="b">${inv.invoiceNo}</td><td>${inv.company}</td><td>${inv.terminal}</td><td class="r">${inv.qty.toFixed(2)}</td><td class="r b">${formatAmt(inv.netAmt)}</td><td class="r red b">${formatAmt(getPendingAmt(inv))}</td><td>${formatDate(inv.dueDate)}</td><td class="${dl < 0 ? 'red b' : ''}">${dl < 0 ? 'OVERDUE '+Math.abs(dl)+'d' : dl+'d'}</td><td>${bgLabel}</td></tr>`;
 }).join('')}
-<tr class="total-row"><td></td><td colspan="4">TOTAL OUTSTANDING</td><td class="r">${unpaid.reduce((s,i)=>s+i.qty,0).toFixed(2)}</td><td class="r red">${formatAmt(totalOutstanding)}</td><td colspan="3"></td></tr>
+<tr class="total-row"><td></td><td colspan="4">TOTAL OUTSTANDING</td><td class="r">${unpaid.reduce((s,i)=>s+i.qty,0).toFixed(2)}</td><td></td><td class="r red">${formatAmt(totalOutstanding)}</td><td colspan="3"></td></tr>
 </tbody></table></div>` : ''}
 
 ${paid.length > 0 ? `<div class="section"><h2 class="paid">PAID / CLEARED INVOICES (${paid.length})</h2>
-<table><thead><tr><th>#</th><th>Inv Date</th><th>Invoice No</th><th>Company</th><th>Terminal</th><th class="r">Qty (MT)</th><th class="r">Amount Paid</th><th>Due Date</th><th>Paid Date</th></tr></thead><tbody>
-${paid.map((inv, i) => `<tr><td>${i+1}</td><td>${formatDate(inv.date)}</td><td class="b">${inv.invoiceNo}</td><td>${inv.company}</td><td>${inv.terminal}</td><td class="r">${inv.qty.toFixed(2)}</td><td class="r green b">${formatAmt(inv.paidAmt)}</td><td>${formatDate(inv.dueDate)}</td><td>${formatDate(inv.paidDate)}</td></tr>`).join('')}
-<tr class="total-row"><td></td><td colspan="4">TOTAL PAID</td><td class="r">${paid.reduce((s,i)=>s+i.qty,0).toFixed(2)}</td><td class="r green">${formatAmt(totalPaid)}</td><td colspan="2"></td></tr>
+<table><thead><tr><th>#</th><th>Inv Date</th><th>Invoice No</th><th>Company</th><th>Terminal</th><th class="r">Qty (MT)</th><th class="r">Amount Paid</th><th class="r">Pending</th><th>Due Date</th><th>Paid Date</th></tr></thead><tbody>
+${paid.map((inv, i) => `<tr><td>${i+1}</td><td>${formatDate(inv.date)}</td><td class="b">${inv.invoiceNo}</td><td>${inv.company}</td><td>${inv.terminal}</td><td class="r">${inv.qty.toFixed(2)}</td><td class="r green b">${formatAmt(getPaidAmt(inv))}</td><td class="r red">${formatAmt(getPendingAmt(inv))}</td><td>${formatDate(inv.dueDate)}</td><td>${formatDate(inv.paidDate)}</td></tr>`).join('')}
+<tr class="total-row"><td></td><td colspan="4">TOTAL PAID</td><td class="r">${paid.reduce((s,i)=>s+i.qty,0).toFixed(2)}</td><td class="r green">${formatAmt(totalPaid)}</td><td></td><td colspan="2"></td></tr>
 </tbody></table></div>` : ''}
 
 <div class="section"><h2 class="bg">BANK GUARANTEE STATUS</h2>
@@ -635,7 +702,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
             {/* Upcoming Due - next 7 days */}
             <div style={cardStyle}>
               <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>⚠ Upcoming Payments (Next 7 Days)</div>
-              {invoices.filter(i => i.status !== "paid" && daysUntil(i.dueDate) >= 0 && daysUntil(i.dueDate) <= 7).length === 0 ? (
+              {invoices.filter(i => getPendingAmt(i) > 0 && daysUntil(i.dueDate) >= 0 && daysUntil(i.dueDate) <= 7).length === 0 ? (
                 <div style={{ color: "#94a3b8", fontSize: 13, padding: "12px 0" }}>No payments due in next 7 days 🎉</div>
               ) : (
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -647,14 +714,14 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                     </tr>
                   </thead>
                   <tbody>
-                    {invoices.filter(i => i.status !== "paid" && daysUntil(i.dueDate) >= 0 && daysUntil(i.dueDate) <= 7).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).map(i => (
+                    {invoices.filter(i => getPendingAmt(i) > 0 && daysUntil(i.dueDate) >= 0 && daysUntil(i.dueDate) <= 7).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).map(i => (
                       <tr key={i.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                         <td style={{ padding: "10px 6px", fontWeight: 600 }}>{i.invoiceNo}</td>
                         <td style={{ padding: "10px 6px" }}>{i.company}</td>
                         <td style={{ padding: "10px 6px" }}>{i.terminal}</td>
                         <td style={{ padding: "10px 6px" }}>{formatDate(i.dueDate)}</td>
-                        <td style={{ padding: "10px 6px" }}><StatusBadge status={i.status} daysLeft={daysUntil(i.dueDate)} /></td>
-                        <td style={{ padding: "10px 6px", fontWeight: 600, color: "#dc2626" }}>{formatAmt(i.netAmt)}</td>
+                        <td style={{ padding: "10px 6px" }}><StatusBadge status={getInvoiceStatus(i)} daysLeft={daysUntil(i.dueDate)} /></td>
+                        <td style={{ padding: "10px 6px", fontWeight: 600, color: "#dc2626" }}>{formatAmt(getPendingAmt(i))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -676,7 +743,8 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
               </select>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...selectStyle, width: "auto" }}>
                 <option value="ALL">All Status</option>
-                <option value="unpaid">Unpaid</option>
+                <option value="unpaid">Unpaid / Pending</option>
+                <option value="partial">Partly paid</option>
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
                 <option value="due_soon">Due in 7 days</option>
@@ -691,7 +759,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr style={{ background: "#f8fafc" }}>
-                      {["#", "Inv Date", "Invoice No", "Company", "Terminal", "Qty (MT)", "Net Amount", "Due Date", "Status", "Paid Date", "Action"].map(h => (
+                      {["#", "Inv Date", "Invoice No", "Company", "Terminal", "Qty (MT)", "Net Amount", "Paid", "Pending", "Due Date", "Status", "Paid Date", "Action"].map(h => (
                         <th key={h} style={{ padding: "12px 8px", textAlign: "left", fontSize: 10, textTransform: "uppercase", color: "#8896a8", fontWeight: 600, borderBottom: "2px solid #e2e8f0", whiteSpace: "nowrap" }}>{h}</th>
                       ))}
                     </tr>
@@ -699,8 +767,11 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                   <tbody>
                     {filteredInvoices.map((inv, idx) => {
                       const dl = daysUntil(inv.dueDate);
+                      const status = getInvoiceStatus(inv);
+                      const pending = getPendingAmt(inv);
+                      const paid = getPaidAmt(inv);
                       return (
-                        <tr key={inv.id} style={{ borderBottom: "1px solid #f1f5f9", background: inv.status === "paid" ? "#f0fdf4" : dl < 0 ? "#fef2f2" : "white" }}>
+                        <tr key={inv.id} style={{ borderBottom: "1px solid #f1f5f9", background: status === "paid" ? "#f0fdf4" : status === "partial" ? "#f0f9ff" : dl < 0 ? "#fef2f2" : "white" }}>
                           <td style={{ padding: "10px 8px", color: "#94a3b8" }}>{idx + 1}</td>
                           <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>{formatDate(inv.date)}</td>
                           <td style={{ padding: "10px 8px", fontWeight: 600, fontSize: 11 }}>{inv.invoiceNo}</td>
@@ -708,14 +779,16 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                           <td style={{ padding: "10px 8px", fontSize: 11 }}>{inv.terminal}</td>
                           <td style={{ padding: "10px 8px", textAlign: "right" }}>{inv.qty.toFixed(2)}</td>
                           <td style={{ padding: "10px 8px", textAlign: "right", fontWeight: 600, whiteSpace: "nowrap" }}>{formatAmt(inv.netAmt)}</td>
+                          <td style={{ padding: "10px 8px", textAlign: "right", color: "#16a34a", fontWeight: 600, whiteSpace: "nowrap" }}>{paid > 0 ? formatAmt(paid) : "-"}</td>
+                          <td style={{ padding: "10px 8px", textAlign: "right", color: pending > 0 ? "#dc2626" : "#16a34a", fontWeight: 700, whiteSpace: "nowrap" }}>{formatAmt(pending)}</td>
                           <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>{formatDate(inv.dueDate)}</td>
-                          <td style={{ padding: "10px 8px" }}><StatusBadge status={inv.status} daysLeft={dl} /></td>
+                          <td style={{ padding: "10px 8px" }}><StatusBadge status={status} daysLeft={dl} /></td>
                           <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>{inv.paidDate ? formatDate(inv.paidDate) : "-"}</td>
                           <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>
                             <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                              {inv.status !== "paid" ? (
+                              {status !== "paid" ? (
                                 <>
-                                  <button onClick={() => setShowPayModal(inv.id)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Pay ✓</button>
+                                  <button onClick={() => openPaymentModal(inv)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Pay ✓</button>
                                   <button onClick={() => openEditInvoice(inv)} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Edit</button>
                                   <button onClick={() => handleDeleteInvoice(inv.id)} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✕</button>
                                 </>
@@ -736,8 +809,8 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
               {/* Summary footer */}
               <div style={{ background: "#f8fafc", padding: "14px 16px", display: "flex", gap: 24, fontSize: 12, fontWeight: 600, borderTop: "2px solid #e2e8f0" }}>
                 <span>Total: {filteredInvoices.length} invoices</span>
-                <span style={{ color: "#dc2626" }}>Outstanding: {formatCurrency(filteredInvoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.netAmt, 0))}</span>
-                <span style={{ color: "#16a34a" }}>Paid: {formatCurrency(filteredInvoices.filter(i => i.status === "paid").reduce((s, i) => s + i.paidAmt, 0))}</span>
+                <span style={{ color: "#dc2626" }}>Outstanding: {formatCurrency(filteredInvoices.reduce((s, i) => s + getPendingAmt(i), 0))}</span>
+                <span style={{ color: "#16a34a" }}>Paid: {formatCurrency(filteredInvoices.reduce((s, i) => s + getPaidAmt(i), 0))}</span>
               </div>
             </div>
           </>
@@ -997,26 +1070,64 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
 
       {/* Pay Modal */}
       {showPayModal && (
-        <Overlay onClose={() => setShowPayModal(null)}>
+        <Overlay onClose={() => { setShowPayModal(null); setPaymentAmount(""); }}>
           {(() => {
             const inv = invoices.find(i => i.id === showPayModal);
-            if (!inv) return null;
+              if (!inv) return null;
+              const orderedForPreview = invoices
+                .filter(i => i.company === inv.company && getPendingAmt(i) > 0)
+                .sort((a, b) => {
+                  const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
+                  if (dueDiff !== 0) return dueDiff;
+                  const dateDiff = new Date(a.date) - new Date(b.date);
+                  if (dateDiff !== 0) return dateDiff;
+                  return Number(a.id) - Number(b.id);
+                });
+              const startIndex = Math.max(0, orderedForPreview.findIndex(i => i.id === inv.id));
+              let previewRemaining = Math.max(0, parseFloat(paymentAmount) || 0);
+              const allocationPreview = orderedForPreview.slice(startIndex).map(row => {
+                const pending = getPendingAmt(row);
+                const applied = Math.min(pending, previewRemaining);
+                previewRemaining -= applied;
+                return { ...row, pending, applied, balanceAfter: pending - applied };
+              }).filter(row => row.applied > 0);
             return (
               <>
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Mark as Paid</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Allocate Payment Sequentially</div>
                 <div style={{ background: "#f8fafc", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Invoice:</b> {inv.invoiceNo}</div>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Starting Invoice:</b> {inv.invoiceNo}</div>
                   <div style={{ fontSize: 13, marginBottom: 4 }}><b>Company:</b> {inv.company} | {inv.terminal}</div>
-                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Amount:</b> {formatAmt(inv.netAmt)}</div>
-                  <div style={{ fontSize: 13 }}><b>Due Date:</b> {formatDate(inv.dueDate)}</div>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Invoice Net:</b> {formatAmt(inv.netAmt)}</div>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Already Paid:</b> {formatAmt(getPaidAmt(inv))}</div>
+                  <div style={{ fontSize: 13 }}><b>Pending:</b> {formatAmt(getPendingAmt(inv))}</div>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Payment Date</label>
-                  <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} style={inputStyle} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Payment Date</label>
+                    <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Payment Amount (₹)</label>
+                    <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={inputStyle} placeholder="e.g. 5000000" />
+                  </div>
                 </div>
+                {allocationPreview.length > 0 && (
+                  <div style={{ background: "#ecfdf5", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12, marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>Sequential allocation preview</div>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {allocationPreview.map(row => (
+                        <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 8, fontSize: 11 }}>
+                          <span><b>{row.invoiceNo}</b></span>
+                          <span style={{ color: "#16a34a" }}>Pay {formatAmt(row.applied)}</span>
+                          <span style={{ color: row.balanceAfter > 0 ? "#dc2626" : "#16a34a" }}>Pending {formatAmt(row.balanceAfter)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => handlePay(showPayModal)} style={{ ...btnPrimary, background: "#16a34a" }}>Confirm Payment ✓</button>
-                  <button onClick={() => setShowPayModal(null)} style={btnSecondary}>Cancel</button>
+                  <button onClick={() => handlePay(showPayModal)} disabled={!paymentAmount || parseFloat(paymentAmount) <= 0} style={{ ...btnPrimary, background: "#16a34a", opacity: (!paymentAmount || parseFloat(paymentAmount) <= 0) ? 0.55 : 1 }}>Allocate Payment ✓</button>
+                  <button onClick={() => { setShowPayModal(null); setPaymentAmount(""); }} style={btnSecondary}>Cancel</button>
                 </div>
               </>
             );

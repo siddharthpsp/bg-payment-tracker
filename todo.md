@@ -49,3 +49,13 @@
 - [ ] Change the dashboard heading from “NH PACKAGE 03 & 04 AMD-RAJKOT — BITUMEN & RS-1 DASHBOARD” to remove “RS-1”.
 - [ ] Rebuild and republish the GitHub Pages app.
 - [ ] Verify the live dashboard heading no longer includes “RS-1”.
+
+
+# Sequential Lump-Sum Payment Allocation
+
+- [x] Inspect the current invoice payment model and payment action flow in `client/src/pages/Home.tsx`.
+- [x] Add a lump-sum payment input that can allocate amounts sequentially across unpaid invoices.
+- [x] Update invoice records so fully covered invoices become paid and the final partially covered invoice keeps the unpaid pending balance.
+- [x] Ensure dashboard totals use pending amounts rather than original net amounts when partial payments exist.
+- [ ] Build, deploy to GitHub Pages, push source to GitHub, and save a new Manus checkpoint.
+
