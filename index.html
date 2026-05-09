@@ -159,33 +159,8 @@
         };
 
         async function getOrCreateBinId() {
-            let binId = localStorage.getItem('tracker_bin_id');
-            if (binId) return binId;
-
-            try {
-                const res = await fetch(`${JSONBIN_API_URL}/b`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': MASTER_KEY,
-                    },
-                    body: JSON.stringify({
-                        invoices: INITIAL_INVOICES,
-                        bgs: INITIAL_BGS,
-                        paymentHistory: [],
-                        lastUpdated: Date.now(),
-                    }),
-                });
-
-                if (!res.ok) throw new Error('Failed to create bin');
-                const data = await res.json();
-                binId = data.metadata.id;
-                localStorage.setItem('tracker_bin_id', binId);
-                return binId;
-            } catch (err) {
-                console.error('Error creating bin:', err);
-                throw err;
-            }
+            // Use existing bin ID
+            return '69ddc05e36566621a8aec3f1';
         }
 
         async function loadData(binId) {
