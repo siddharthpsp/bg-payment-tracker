@@ -105,4 +105,4 @@
 - [x] Inspect dashboard summary cards, due lists, and visual effects that depend on invoice data.
 - [x] Fix any cached or non-reactive dashboard calculations so adding invoices updates dashboard totals immediately.
 - [x] Fix invoice deletion so dashboard totals, pending amount, paid amount, and due sections update immediately.
-- [ ] Validate build, deploy to GitHub Pages, push source, verify live markers, and save a checkpoint.
+- [x] Validate build, deploy to GitHub Pages, push source, verify live markers, and save a checkpoint.
