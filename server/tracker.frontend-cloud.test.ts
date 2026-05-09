@@ -3,31 +3,31 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
-const mainSource = readFileSync(resolve(process.cwd(), "client/src/main.tsx"), "utf8");
 
-describe("tracker frontend static JSON persistence wiring", () => {
-  it("loads and saves tracker data through browser localStorage keys", () => {
-    expect(homeSource).toContain('window.localStorage.getItem("bgpt.invoices")');
-    expect(homeSource).toContain('window.localStorage.getItem("bgpt.bgs")');
-    expect(homeSource).toContain('window.localStorage.getItem("bgpt.paymentHistory")');
-    expect(homeSource).toContain('window.localStorage.setItem("bgpt.invoices", JSON.stringify(invoices))');
-    expect(homeSource).toContain('window.localStorage.setItem("bgpt.bgs", JSON.stringify(bgs))');
-    expect(homeSource).toContain('window.localStorage.setItem("bgpt.paymentHistory", JSON.stringify(paymentHistory))');
+describe("tracker frontend cloud persistence wiring", () => {
+  it("loads and saves tracker data through the authenticated cloud tRPC procedures", () => {
+    expect(homeSource).toContain("trpc.tracker.getState.useQuery");
+    expect(homeSource).toContain("trpc.tracker.saveState.useMutation");
+    expect(homeSource).toContain("saveTrackerState.mutate({ invoices, bgs, paymentHistory })");
+    expect(homeSource).toContain("const restoredInvoices = Array.isArray(cloudState.invoices) ? cloudState.invoices : INITIAL_INVOICES");
+    expect(homeSource).toContain("setInvoices(missingReportedInvoice ? [...restoredInvoices, buildReportedRestoreInvoice(restoredInvoices)]");
+    expect(homeSource).toContain("setBgs(Array.isArray(cloudState.bgs) ? cloudState.bgs : INITIAL_BGS)");
+    expect(homeSource).toContain("setPaymentHistory(Array.isArray(cloudState.paymentHistory) ? cloudState.paymentHistory : [])");
   });
 
-  it("keeps JSON backup import/export controls available for browser-to-browser transfer", () => {
-    expect(homeSource).toContain("function handleExportData()");
-    expect(homeSource).toContain("function handleImportData(event)");
-    expect(homeSource).toContain("importInputRef");
-    expect(homeSource).toContain(">Export Data<");
-    expect(homeSource).toContain(">Import Data<");
-    expect(homeSource).toContain("bg-payment-tracker-backup-");
+  it("does not use browser-local persistence or import/export backup controls", () => {
+    expect(homeSource).not.toContain("localStorage");
+    expect(homeSource).not.toContain("handleExportData");
+    expect(homeSource).not.toContain("handleImportData");
+    expect(homeSource).not.toContain("importInputRef");
+    expect(homeSource).not.toContain(">Export Data<");
+    expect(homeSource).not.toContain(">Import Data<");
   });
 
-  it("does not mount the authenticated tRPC cloud client in the static entry path", () => {
-    expect(mainSource).not.toContain("trpc.Provider");
-    expect(mainSource).not.toContain("QueryClientProvider");
-    expect(homeSource).not.toContain("trpc.tracker.getState.useQuery");
-    expect(homeSource).not.toContain("trpc.tracker.saveState.useMutation");
+  it("pauses autosave and shows retry UI when the initial cloud load fails", () => {
+    expect(homeSource).toContain("cloudStateQuery.isError || !cloudStateQuery.isSuccess");
+    expect(homeSource).toContain("Cloud load failed");
+    expect(homeSource).toContain("Retry Cloud Load");
+    expect(homeSource).toContain("automatic saving is paused");
   });
 });

@@ -3,6 +3,7 @@ import { appRouter } from "./routers";
 import { deserializeTrackerState, serializeTrackerState } from "./db";
 import type { TrackerStatePayload } from "./db";
 import type { TrpcContext } from "./_core/context";
+import { allocateDirectPayment, deletePaymentEntry, removeInvoicePayments, restoreReportedInvoice } from "../shared/trackerLogic";
 
 const dbMocks = vi.hoisted(() => ({
   getTrackerStateByUserId: vi.fn(),
@@ -103,5 +104,130 @@ describe("tracker cloud procedures", () => {
 
     expect(dbMocks.saveTrackerStateForUserId).toHaveBeenCalledWith(77, input);
     expect(result).toEqual(input);
+  });
+
+  it("persists add, edit, delete, payment allocation, payment deletion, and restore flows across fresh cloud reads", async () => {
+    const userId = 91;
+    let storedState: TrackerStatePayload = { invoices: [], bgs: [], paymentHistory: [] };
+
+    dbMocks.getTrackerStateByUserId.mockImplementation(async () => storedState);
+    dbMocks.saveTrackerStateForUserId.mockImplementation(async (_savedUserId: number, nextState: TrackerStatePayload) => {
+      storedState = JSON.parse(JSON.stringify(nextState)) as TrackerStatePayload;
+      return storedState;
+    });
+
+    const saveCaller = appRouter.createCaller(createAuthContext(userId));
+    const freshRead = async () => appRouter.createCaller(createAuthContext(userId)).tracker.getState();
+
+    const addedState: TrackerStatePayload = {
+      invoices: [{ id: 1, invoiceNo: "GJ0160012325", netAmt: 2967174.9, paidAmt: 0, status: "unpaid" }],
+      bgs: [{ id: 1, bgNo: "HPCL-BG-2CR", bgAmount: 20000000, marginPct: 15 }],
+      paymentHistory: [],
+    };
+    await saveCaller.tracker.saveState(addedState);
+    expect(await freshRead()).toEqual(addedState);
+
+    const editedState: TrackerStatePayload = {
+      ...addedState,
+      invoices: [{ ...addedState.invoices[0], terminal: "HPCL PIPAVAV", qty: 28.5 }],
+      bgs: [{ ...addedState.bgs[0], bankName: "ICICI Bank - Himatnagar" }],
+    };
+    await saveCaller.tracker.saveState(editedState);
+    expect(await freshRead()).toEqual(editedState);
+
+    const paymentAllocatedState: TrackerStatePayload = {
+      ...editedState,
+      invoices: [{ ...editedState.invoices[0], paidAmt: 1686607.2, status: "partial", paidDate: "2026-05-08" }],
+      paymentHistory: [{
+        id: 10,
+        paymentDate: "2026-05-08",
+        company: "HPCL",
+        amountReceived: 1686607.2,
+        allocatedAmount: 1686607.2,
+        unallocatedAmount: 0,
+        allocations: [{ invoiceId: 1, invoiceNo: "GJ0160012325", amountAdjusted: 1686607.2 }],
+      }],
+    };
+    await saveCaller.tracker.saveState(paymentAllocatedState);
+    expect(await freshRead()).toEqual(paymentAllocatedState);
+
+    const paymentDeletedState: TrackerStatePayload = {
+      ...editedState,
+      invoices: [{ ...editedState.invoices[0], paidAmt: 0, status: "unpaid", paidDate: null }],
+      paymentHistory: [],
+    };
+    await saveCaller.tracker.saveState(paymentDeletedState);
+    expect(await freshRead()).toEqual(paymentDeletedState);
+
+    const invoiceDeletedState: TrackerStatePayload = {
+      invoices: [],
+      bgs: paymentDeletedState.bgs,
+      paymentHistory: [],
+    };
+    await saveCaller.tracker.saveState(invoiceDeletedState);
+    expect(await freshRead()).toEqual(invoiceDeletedState);
+
+    await saveCaller.tracker.saveState(addedState);
+    expect(await freshRead()).toEqual(addedState);
+    expect(dbMocks.getTrackerStateByUserId).toHaveBeenCalledWith(userId);
+    expect(dbMocks.saveTrackerStateForUserId).toHaveBeenCalledWith(userId, expect.any(Object));
+  });
+});
+
+describe("shared tracker business logic", () => {
+  it("allocates a lump-sum company payment to the oldest pending invoices first", () => {
+    const invoices = [
+      { id: 2, invoiceNo: "NEW", company: "HPCL", date: "2026-05-02", dueDate: "2026-06-01", terminal: "HPCL PIPAVAV", netAmt: 200, paidAmt: 0, status: "unpaid" },
+      { id: 1, invoiceNo: "OLD", company: "HPCL", date: "2026-04-16", dueDate: "2026-05-16", terminal: "HPCL PIPAVAV", netAmt: 100, paidAmt: 25, status: "partial" },
+      { id: 3, invoiceNo: "IOCL", company: "IOCL", date: "2026-04-16", dueDate: "2026-05-15", terminal: "IOCL", netAmt: 500, paidAmt: 0, status: "unpaid" },
+    ];
+
+    const result = allocateDirectPayment(invoices, [], {
+      company: "HPCL",
+      amount: 125,
+      paymentDate: "2026-05-09",
+      paymentId: 99,
+    });
+
+    expect(result.invoices.find(inv => inv.id === 1)).toMatchObject({ paidAmt: 100, status: "paid", paidDate: "2026-05-09" });
+    expect(result.invoices.find(inv => inv.id === 2)).toMatchObject({ paidAmt: 50, status: "partial", paidDate: "2026-05-09" });
+    expect(result.invoices.find(inv => inv.id === 3)).toMatchObject({ paidAmt: 0, status: "unpaid" });
+    expect(result.paymentHistory[0]).toMatchObject({ id: 99, amountReceived: 125, allocatedAmount: 125, unallocatedAmount: 0 });
+    expect(result.paymentHistory[0].allocations.map(row => row.invoiceNo)).toEqual(["OLD", "NEW"]);
+  });
+
+  it("reverses payment deletion and per-invoice payment removal without losing unallocated amounts", () => {
+    const invoices = [
+      { id: 1, invoiceNo: "A", company: "HPCL", netAmt: 100, paidAmt: 100, paidDate: "2026-05-09", status: "paid" },
+      { id: 2, invoiceNo: "B", company: "HPCL", netAmt: 200, paidAmt: 50, paidDate: "2026-05-09", status: "partial" },
+    ];
+    const paymentHistory = [{
+      id: 10,
+      allocatedAmount: 150,
+      unallocatedAmount: 25,
+      allocations: [
+        { invoiceId: 1, amountAdjusted: 100 },
+        { invoiceId: 2, amountAdjusted: 50 },
+      ],
+    }];
+
+    const deleted = deletePaymentEntry(invoices, paymentHistory, 10);
+    expect(deleted.invoices).toEqual([
+      { ...invoices[0], paidAmt: 0, paidDate: null, status: "unpaid" },
+      { ...invoices[1], paidAmt: 0, paidDate: null, status: "unpaid" },
+    ]);
+    expect(deleted.paymentHistory).toEqual([]);
+
+    const removed = removeInvoicePayments(invoices, paymentHistory, 2);
+    expect(removed.invoices.find(inv => inv.id === 2)).toMatchObject({ paidAmt: 0, paidDate: null, status: "unpaid" });
+    expect(removed.paymentHistory[0]).toMatchObject({ allocatedAmount: 100, unallocatedAmount: 75 });
+    expect(removed.paymentHistory[0].allocations).toEqual([{ invoiceId: 1, amountAdjusted: 100 }]);
+  });
+
+  it("restores the reported GJ0160012325 invoice exactly once", () => {
+    const restored = restoreReportedInvoice([], 12345);
+    expect(restored).toHaveLength(1);
+    expect(restored[0]).toMatchObject({ invoiceNo: "GJ0160012325", paidAmt: 1686607.2, status: "partial" });
+    expect(restoreReportedInvoice(restored, 67890)).toBe(restored);
   });
 });

@@ -144,3 +144,16 @@
 - [x] Publish the static build to GitHub Pages using direct gh-pages deployment because GitHub workflow updates are blocked by the current app token permission.
 - [x] Push the static deployment changes to GitHub main.
 - [x] Verify https://siddharthpsp.github.io/bg-payment-tracker/ is live with the JSON/localStorage version.
+
+# Restore Cloud-Saved Live App Without Export Import
+
+- [x] Restore the BG Payment Tracker as a cloud-saved database-backed live app rather than the old static JSON/localStorage file.
+- [x] Remove Export Data and Import Data controls and the browser-specific JSON guidance from the UI.
+- [x] Ensure invoices, bank guarantees, and payment history load from and save to cloud database storage.
+- [x] Verify add, edit, delete, direct payment allocation, payment deletion, and restore actions persist across browsers after login.
+- [x] Run database migration, automated tests, build validation, and live preview verification.
+- [x] Save a checkpoint and tell the user to publish the Manus live app from the UI.
+- [x] Handle initial cloud-load errors without enabling autosave or overwriting saved tracker data.
+- [x] Add a visible cloud-load error and retry state for failed initial database fetches.
+- [x] Add automated coverage for add, edit, delete, direct payment allocation, payment deletion, and restore flows using the cloud-backed tracker state.
+- [x] Verify that refreshed authenticated sessions restore updated invoices, BGs, and payment history from cloud state.

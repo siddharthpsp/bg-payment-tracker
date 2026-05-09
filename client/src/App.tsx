@@ -10,7 +10,6 @@ import { ThemeProvider } from "./contexts/ThemeContext";
  */
 import Home from "./pages/Home";
 
-
 function Router() {
   const basePath = import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL.replace(/\/$/, "");
 
