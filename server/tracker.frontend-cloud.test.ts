@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 const homeSource = readFileSync(resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 
 describe("tracker frontend cloud persistence wiring", () => {
-  it("loads and saves tracker data through the authenticated cloud tRPC procedures", () => {
-    expect(homeSource).toContain("trpc.tracker.getState.useQuery");
-    expect(homeSource).toContain("trpc.tracker.saveState.useMutation");
+  it("loads and saves tracker data through the shared cloud tRPC procedures", () => {
+    expect(homeSource).toContain("trpc.tracker.getSharedState.useQuery");
+    expect(homeSource).toContain("trpc.tracker.saveSharedState.useMutation");
     expect(homeSource).toContain("saveTrackerState.mutate({ invoices, bgs, paymentHistory })");
     expect(homeSource).toContain("const restoredInvoices = Array.isArray(cloudState.invoices) ? cloudState.invoices : INITIAL_INVOICES");
     expect(homeSource).toContain("setInvoices(missingReportedInvoice ? [...restoredInvoices, buildReportedRestoreInvoice(restoredInvoices)]");

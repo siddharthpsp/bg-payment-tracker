@@ -180,3 +180,17 @@
 - [x] Preserve the cloud-backed Manus app and avoid any browser/localStorage conversion.
 - [x] Prepare a GitHub Pages static entry page or redirect to the Manus-hosted cloud app if the exact GitHub Pages URL must be used as the access link.
 - [x] Validate the GitHub Pages URL behavior and report the final live access instructions to the user.
+
+# GitHub-Only Hosting Clarification
+
+- [ ] Explain why the current redirect uses the Manus URL for the server/database-backed app.
+- [ ] Clarify that GitHub Pages can host the frontend files but cannot run the Node/tRPC backend or database by itself.
+- [ ] Present valid options for a GitHub URL frontend with separate cloud backend, including required backend hosting and database credentials.
+- [ ] Ask the user to choose between static browser-only GitHub Pages, GitHub Pages frontend plus external backend, or Manus cloud hosting/custom domain.
+
+# Direct GitHub Pages App With Cloud Storage
+
+- [x] Verify whether the previous cloud-based tracker used an external backend or database that can be called from GitHub Pages.
+- [x] Remove or replace the GitHub Pages redirect if a direct GitHub-hosted frontend with cloud persistence is feasible.
+- [x] Ensure the direct GitHub Pages app does not use browser localStorage as the source of truth for invoices, BGs, and payment history.
+- [ ] Validate that data created from the GitHub Pages URL persists as shared cloud data across browsers/devices.

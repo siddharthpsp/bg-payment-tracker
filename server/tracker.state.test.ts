@@ -8,6 +8,8 @@ import { allocateDirectPayment, deletePaymentEntry, removeInvoicePayments, resto
 const dbMocks = vi.hoisted(() => ({
   getTrackerStateByUserId: vi.fn(),
   saveTrackerStateForUserId: vi.fn(),
+  getSharedTrackerState: vi.fn(),
+  saveSharedTrackerState: vi.fn(),
 }));
 
 vi.mock("./db", async importOriginal => {
@@ -16,6 +18,8 @@ vi.mock("./db", async importOriginal => {
     ...actual,
     getTrackerStateByUserId: dbMocks.getTrackerStateByUserId,
     saveTrackerStateForUserId: dbMocks.saveTrackerStateForUserId,
+    getSharedTrackerState: dbMocks.getSharedTrackerState,
+    saveSharedTrackerState: dbMocks.saveSharedTrackerState,
   };
 });
 
@@ -74,6 +78,8 @@ describe("tracker cloud procedures", () => {
   beforeEach(() => {
     dbMocks.getTrackerStateByUserId.mockReset();
     dbMocks.saveTrackerStateForUserId.mockReset();
+    dbMocks.getSharedTrackerState.mockReset();
+    dbMocks.saveSharedTrackerState.mockReset();
   });
 
   it("loads cloud tracker state for the authenticated user", async () => {
@@ -89,6 +95,36 @@ describe("tracker cloud procedures", () => {
 
     expect(dbMocks.getTrackerStateByUserId).toHaveBeenCalledWith(42);
     expect(result).toEqual(expected);
+  });
+
+  it("loads shared cloud tracker state without requiring authentication", async () => {
+    const expected: TrackerStatePayload = {
+      invoices: [{ invoiceNo: "GJ0160012325", paidAmt: 1686607.2 }],
+      bgs: [{ bgNo: "HPCL-BG-2CR" }],
+      paymentHistory: [],
+    };
+    dbMocks.getSharedTrackerState.mockResolvedValue(expected);
+
+    const caller = appRouter.createCaller(createAuthContext(42));
+    const result = await caller.tracker.getSharedState();
+
+    expect(dbMocks.getSharedTrackerState).toHaveBeenCalledWith();
+    expect(result).toEqual(expected);
+  });
+
+  it("saves shared cloud tracker state without requiring authentication", async () => {
+    const input: TrackerStatePayload = {
+      invoices: [{ invoiceNo: "GJ0160013158", netAmt: 3269097.96 }],
+      bgs: [{ bgNo: "0452NDLG00007726", bgAmount: 10000000 }],
+      paymentHistory: [{ paymentDate: "2026-05-09", amountReceived: 500000 }],
+    };
+    dbMocks.saveSharedTrackerState.mockResolvedValue(input);
+
+    const caller = appRouter.createCaller(createAuthContext(42));
+    const result = await caller.tracker.saveSharedState(input);
+
+    expect(dbMocks.saveSharedTrackerState).toHaveBeenCalledWith(input);
+    expect(result).toEqual(input);
   });
 
   it("saves tracker state under the authenticated user's cloud workspace", async () => {

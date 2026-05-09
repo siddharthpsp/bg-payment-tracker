@@ -195,11 +195,11 @@ function Overlay({ children, onClose }) {
 }
 
 export default function Home() {
-  const cloudStateQuery = trpc.tracker.getState.useQuery(undefined, {
+  const cloudStateQuery = trpc.tracker.getSharedState.useQuery(undefined, {
     refetchOnWindowFocus: false,
     retry: 1,
   });
-  const saveTrackerState = trpc.tracker.saveState.useMutation();
+  const saveTrackerState = trpc.tracker.saveSharedState.useMutation();
   const [cloudLoaded, setCloudLoaded] = useState(false);
   const [invoices, setInvoices] = useState(INITIAL_INVOICES);
   const [bgs, setBgs] = useState(INITIAL_BGS);
@@ -692,7 +692,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
           )}
         </div>
         <div style={{ marginTop: 10, fontSize: 11, color: "#cbd5e1", maxWidth: 760 }}>
-          Your invoices, bank guarantees, and payment history are saved to the authenticated cloud database for this app. Import and export backups are no longer required.
+          Your invoices, bank guarantees, and payment history are saved to the shared cloud database for this app. The GitHub Pages frontend uses this cloud data directly, so this browser is not the source of truth.
         </div>
         {cloudStateQuery.isError && (
           <div style={{ marginTop: 12, maxWidth: 820, background: "rgba(127,29,29,0.35)", border: "1px solid rgba(254,202,202,0.35)", color: "#fee2e2", borderRadius: 12, padding: "10px 12px", fontSize: 12, lineHeight: 1.5 }}>

@@ -95,6 +95,8 @@ export type TrackerStatePayload = {
   paymentHistory: unknown[];
 };
 
+const SHARED_TRACKER_USER_ID = 0;
+
 const parseJsonArray = (value: string | null | undefined): unknown[] => {
   if (!value) return [];
 
@@ -106,11 +108,20 @@ const parseJsonArray = (value: string | null | undefined): unknown[] => {
   }
 };
 
-export function serializeTrackerState(input: TrackerStatePayload): Pick<InsertTrackerState, "invoicesJson" | "bgsJson" | "paymentHistoryJson"> {
+function normalizeTrackerState(state: TrackerStatePayload): TrackerStatePayload {
   return {
-    invoicesJson: JSON.stringify(Array.isArray(input.invoices) ? input.invoices : []),
-    bgsJson: JSON.stringify(Array.isArray(input.bgs) ? input.bgs : []),
-    paymentHistoryJson: JSON.stringify(Array.isArray(input.paymentHistory) ? input.paymentHistory : []),
+    invoices: Array.isArray(state.invoices) ? state.invoices : [],
+    bgs: Array.isArray(state.bgs) ? state.bgs : [],
+    paymentHistory: Array.isArray(state.paymentHistory) ? state.paymentHistory : [],
+  };
+}
+
+export function serializeTrackerState(input: TrackerStatePayload): Pick<InsertTrackerState, "invoicesJson" | "bgsJson" | "paymentHistoryJson"> {
+  const normalized = normalizeTrackerState(input);
+  return {
+    invoicesJson: JSON.stringify(normalized.invoices),
+    bgsJson: JSON.stringify(normalized.bgs),
+    paymentHistoryJson: JSON.stringify(normalized.paymentHistory),
   };
 }
 
@@ -141,7 +152,8 @@ export async function saveTrackerStateForUserId(userId: number, state: TrackerSt
     throw new Error("Database is not available; tracker data could not be saved to cloud storage.");
   }
 
-  const serialized = serializeTrackerState(state);
+  const normalized = normalizeTrackerState(state);
+  const serialized = serializeTrackerState(normalized);
   await db.insert(trackerStates).values({
     userId,
     ...serialized,
@@ -149,9 +161,13 @@ export async function saveTrackerStateForUserId(userId: number, state: TrackerSt
     set: serialized,
   });
 
-  return {
-    invoices: Array.isArray(state.invoices) ? state.invoices : [],
-    bgs: Array.isArray(state.bgs) ? state.bgs : [],
-    paymentHistory: Array.isArray(state.paymentHistory) ? state.paymentHistory : [],
-  };
+  return normalized;
+}
+
+export async function getSharedTrackerState(): Promise<TrackerStatePayload | null> {
+  return getTrackerStateByUserId(SHARED_TRACKER_USER_ID);
+}
+
+export async function saveSharedTrackerState(state: TrackerStatePayload): Promise<TrackerStatePayload> {
+  return saveTrackerStateForUserId(SHARED_TRACKER_USER_ID, state);
 }
