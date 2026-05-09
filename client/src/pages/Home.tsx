@@ -425,6 +425,34 @@ export default function Home() {
     setPaymentAmount("");
   }
 
+  function handleDeletePayment(paymentId) {
+    const payment = paymentHistory.find(p => p.id === paymentId);
+    if (!payment) return;
+
+    const confirmDelete = window.confirm(
+      `Delete payment entry ${payment.id} dated ${formatDate(payment.paymentDate)}?\n\nThis will reverse ${formatAmt(payment.allocatedAmount)} from the invoices adjusted by this payment.`
+    );
+    if (!confirmDelete) return;
+
+    const reversalByInvoice = {};
+    (payment.allocations || []).forEach(row => {
+      reversalByInvoice[row.invoiceId] = (reversalByInvoice[row.invoiceId] || 0) + Number(row.amountAdjusted || 0);
+    });
+
+    setInvoices(prev => prev.map(inv => {
+      const reversal = reversalByInvoice[inv.id] || 0;
+      if (!reversal) return inv;
+
+      const paidAmt = Math.max(0, Math.min(Number(inv.netAmt || 0), getPaidAmt(inv) - reversal));
+      const status = paidAmt >= Number(inv.netAmt || 0) - 0.01 ? "paid" : paidAmt > 0 ? "partial" : "unpaid";
+      const paidDate = paidAmt > 0 ? inv.paidDate : null;
+
+      return { ...inv, paidAmt, paidDate, status };
+    }));
+
+    setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
+  }
+
   function handleAddBG() {
     const bg = {
       id: Date.now(),
@@ -899,10 +927,27 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                         <div style={{ fontSize: 16, fontWeight: 800 }}>{formatDate(payment.paymentDate)} — {payment.company}</div>
                         <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>Payment ID: {payment.id}</div>
                       </div>
-                      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", textAlign: "right" }}>
+                      <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", textAlign: "right" }}>
                         <div><div style={labelStyle}>Received</div><div style={{ fontSize: 18, fontWeight: 800, color: "#16a34a" }}>{formatAmt(payment.amountReceived)}</div></div>
                         <div><div style={labelStyle}>Adjusted</div><div style={{ fontSize: 18, fontWeight: 800, color: "#1a56db" }}>{formatAmt(payment.allocatedAmount)}</div></div>
                         {Number(payment.unallocatedAmount || 0) > 0 && <div><div style={labelStyle}>Unadjusted</div><div style={{ fontSize: 18, fontWeight: 800, color: "#b45309" }}>{formatAmt(payment.unallocatedAmount)}</div></div>}
+                        <button
+                          onClick={() => handleDeletePayment(payment.id)}
+                          title="Delete this payment entry and reverse its invoice allocations"
+                          style={{
+                            border: "1px solid #fecaca",
+                            background: "#fff1f2",
+                            color: "#b91c1c",
+                            borderRadius: 10,
+                            padding: "8px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                     <div style={{ overflowX: "auto" }}>

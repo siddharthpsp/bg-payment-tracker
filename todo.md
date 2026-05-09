@@ -81,3 +81,12 @@
 - [x] Show which invoices each payment adjusted, including fully paid and partly paid balances.
 - [ ] Build, deploy to GitHub Pages, push source to GitHub, and save a new checkpoint.
 
+
+# Delete Old Payment History Entry
+
+- [x] Inspect the current payment history records and invoice allocation fields.
+- [x] Add a delete button for each date-wise payment history entry.
+- [x] When a payment is deleted, reverse only that payment’s allocated amounts from the affected invoices.
+- [x] Recalculate invoice status as paid, partly paid, or pending after deletion.
+- [x] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
+
