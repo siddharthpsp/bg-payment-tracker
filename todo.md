@@ -137,10 +137,10 @@
 
 # Static GitHub Pages JSON Deployment Request
 
-- [ ] Restore the tracker as a client-only React SPA for GitHub Pages.
-- [ ] Use browser JSON/localStorage persistence for invoices, bank guarantees, and payment history.
-- [ ] Remove runtime dependency on server, authentication, tRPC, and database for the GitHub Pages deployment.
-- [ ] Configure Vite base path and routing for /bg-payment-tracker/.
-- [ ] Add or update GitHub Actions deployment to publish the static build to GitHub Pages.
-- [ ] Push the static deployment changes to GitHub main.
-- [ ] Verify https://siddharthpsp.github.io/bg-payment-tracker/ is live with the JSON/localStorage version.
+- [x] Restore the tracker as a client-only React SPA for GitHub Pages.
+- [x] Use browser JSON/localStorage persistence for invoices, bank guarantees, and payment history.
+- [x] Remove runtime dependency on server, authentication, tRPC, and database for the GitHub Pages deployment.
+- [x] Configure Vite base path and routing for /bg-payment-tracker/.
+- [x] Publish the static build to GitHub Pages using direct gh-pages deployment because GitHub workflow updates are blocked by the current app token permission.
+- [x] Push the static deployment changes to GitHub main.
+- [x] Verify https://siddharthpsp.github.io/bg-payment-tracker/ is live with the JSON/localStorage version.
