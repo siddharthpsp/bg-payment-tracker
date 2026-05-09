@@ -36,3 +36,10 @@
 - [ ] Update the BG Payment Tracker dashboard to include the Excel dashboard details while preserving the existing Swiss Financial Modernism interface.
 - [ ] Rebuild and republish the GitHub Pages version so the live GitHub URL reflects the new dashboard content.
 - [ ] Verify the live app opens correctly after publishing and summarize the added details for the user.
+
+# Remove Date-wise Invoice Table
+
+- [ ] Remove the Date-wise Bitumen VG40 Invoice Details table from the dashboard tab.
+- [ ] Keep the Excel summary cards, terminal-wise breakdown, and company-wise breakdown visible.
+- [ ] Rebuild and republish the GitHub Pages app.
+- [ ] Verify the live dashboard no longer shows the date-wise invoice table.

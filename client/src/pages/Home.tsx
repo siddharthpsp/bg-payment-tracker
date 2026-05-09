@@ -573,30 +573,6 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                   </div>
                 ))}
               </div>
-
-              <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ background: "#f8fafc", padding: "10px 12px", fontSize: 12, fontWeight: 800, color: "#334155" }}>Date-wise Bitumen VG40 Invoice Details</div>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 940 }}>
-                    <thead><tr style={{ borderBottom: "2px solid #e2e8f0" }}>{["Date", "Invoice", "Billing Doc", "Vehicle", "Terminal", "Qty MT", "Taxable", "GST", "Net Amount"].map(h => <th key={h} style={{ padding: "9px 8px", textAlign: ["Qty MT", "Taxable", "GST", "Net Amount"].includes(h) ? "right" : "left", fontSize: 10, textTransform: "uppercase", color: "#64748b" }}>{h}</th>)}</tr></thead>
-                    <tbody>
-                      {EXCEL_DASHBOARD.datewiseDetails.map(row => (
-                        <tr key={row.invoiceNo + "-" + row.billingDocNo} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "9px 8px" }}>{formatDate(row.date)}</td>
-                          <td style={{ padding: "9px 8px", fontWeight: 700 }}>{row.invoiceNo}</td>
-                          <td style={{ padding: "9px 8px" }}>{row.billingDocNo}</td>
-                          <td style={{ padding: "9px 8px" }}>{row.vehicleNo}</td>
-                          <td style={{ padding: "9px 8px" }}>{row.terminal}</td>
-                          <td style={{ padding: "9px 8px", textAlign: "right" }}>{formatQty(row.qtyMt)}</td>
-                          <td style={{ padding: "9px 8px", textAlign: "right" }}>{formatCurrency(row.taxable)}</td>
-                          <td style={{ padding: "9px 8px", textAlign: "right" }}>{formatCurrency(row.cgst + row.sgst)}</td>
-                          <td style={{ padding: "9px 8px", textAlign: "right", fontWeight: 700, color: "#1a56db" }}>{formatCurrency(row.net)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
 
             {/* BG Utilization Card */}
