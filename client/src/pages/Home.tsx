@@ -195,7 +195,8 @@ export default function Home() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [showAddInvoice, setShowAddInvoice] = useState(false);
   const [showAddBG, setShowAddBG] = useState(false);
-  const [showPayModal, setShowPayModal] = useState(null);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [directPayCompany, setDirectPayCompany] = useState("HPCL");
   const [showEditInvoice, setShowEditInvoice] = useState(null);
   const [showEditBG, setShowEditBG] = useState(null);
   const [editInv, setEditInv] = useState(null);
@@ -329,21 +330,24 @@ export default function Home() {
     setNewInv({ date: "", invoiceNo: "", company: "HPCL", terminal: "", qty: "", netAmt: "" });
   }
 
-  function openPaymentModal(inv) {
-    setShowPayModal(inv.id);
-    setPaymentAmount(String(getPendingAmt(inv).toFixed(2)));
+  function openDirectPayment(company = filterCompany !== "ALL" ? filterCompany : "HPCL") {
+    setDirectPayCompany(company);
+    setShowPayModal(true);
+    setPaymentAmount("");
+    setPayDate(TODAY);
   }
 
-  function handlePay(id) {
+  function openPaymentModal(inv) {
+    openDirectPayment(inv.company);
+  }
+
+  function handlePay() {
     const amount = Math.max(0, parseFloat(paymentAmount) || 0);
     if (!amount) return;
 
     setInvoices(prev => {
-      const selected = prev.find(i => i.id === id);
-      if (!selected) return prev;
-
       const sequential = prev
-        .filter(i => i.company === selected.company && getPendingAmt(i) > 0)
+        .filter(i => i.company === directPayCompany && getPendingAmt(i) > 0)
         .sort((a, b) => {
           const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
           if (dueDiff !== 0) return dueDiff;
@@ -351,12 +355,10 @@ export default function Home() {
           if (dateDiff !== 0) return dateDiff;
           return Number(a.id) - Number(b.id);
         });
-      const selectedIndex = sequential.findIndex(i => i.id === id);
-      const targets = selectedIndex >= 0 ? sequential.slice(selectedIndex) : sequential;
       const allocation = {};
       let remaining = amount;
 
-      for (const inv of targets) {
+      for (const inv of sequential) {
         if (remaining <= 0) break;
         const pending = getPendingAmt(inv);
         const applied = Math.min(pending, remaining);
@@ -373,7 +375,7 @@ export default function Home() {
       });
     });
 
-    setShowPayModal(null);
+    setShowPayModal(false);
     setPayDate(TODAY);
     setPaymentAmount("");
   }
@@ -753,6 +755,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
               </select>
               <div style={{ flex: 1 }} />
               <button onClick={generatePDFReport} style={{ ...btnSecondary, background: "#dc2626", color: "white", border: "none" }}>📄 PDF Report</button>
+              <button onClick={() => openDirectPayment()} style={{ ...btnPrimary, background: "#16a34a" }}>+ Direct Payment</button>
               <button onClick={() => setShowAddInvoice(true)} style={btnPrimary}>+ Add Invoice</button>
             </div>
 
@@ -790,7 +793,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                             <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
                               {status !== "paid" ? (
                                 <>
-                                  <button onClick={() => openPaymentModal(inv)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Pay ✓</button>
+                                  <button onClick={() => openPaymentModal(inv)} style={{ background: "#16a34a", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Pay Company ✓</button>
                                   <button onClick={() => openEditInvoice(inv)} style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 6, padding: "6px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Edit</button>
                                   <button onClick={() => handleDeleteInvoice(inv.id)} style={{ background: "#ef4444", color: "white", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✕</button>
                                 </>
@@ -1072,50 +1075,62 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
 
       {/* Pay Modal */}
       {showPayModal && (
-        <Overlay onClose={() => { setShowPayModal(null); setPaymentAmount(""); }}>
+        <Overlay onClose={() => setShowPayModal(false)}>
           {(() => {
-            const inv = invoices.find(i => i.id === showPayModal);
-              if (!inv) return null;
-              const orderedForPreview = invoices
-                .filter(i => i.company === inv.company && getPendingAmt(i) > 0)
-                .sort((a, b) => {
-                  const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
-                  if (dueDiff !== 0) return dueDiff;
-                  const dateDiff = new Date(a.date) - new Date(b.date);
-                  if (dateDiff !== 0) return dateDiff;
-                  return Number(a.id) - Number(b.id);
-                });
-              const startIndex = Math.max(0, orderedForPreview.findIndex(i => i.id === inv.id));
-              let previewRemaining = Math.max(0, parseFloat(paymentAmount) || 0);
-              const allocationPreview = orderedForPreview.slice(startIndex).map(row => {
-                const pending = getPendingAmt(row);
-                const applied = Math.min(pending, previewRemaining);
-                previewRemaining -= applied;
-                return { ...row, pending, applied, balanceAfter: pending - applied };
-              }).filter(row => row.applied > 0);
+            const orderedForPreview = invoices
+              .filter(i => i.company === directPayCompany && getPendingAmt(i) > 0)
+              .sort((a, b) => {
+                const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
+                if (dueDiff !== 0) return dueDiff;
+                const dateDiff = new Date(a.date) - new Date(b.date);
+                if (dateDiff !== 0) return dateDiff;
+                return Number(a.id) - Number(b.id);
+              });
+            const pendingTotal = orderedForPreview.reduce((sum, row) => sum + getPendingAmt(row), 0);
+            let previewRemaining = Math.max(0, parseFloat(paymentAmount) || 0);
+            const allocationPreview = orderedForPreview.map(row => {
+              const pending = getPendingAmt(row);
+              const applied = Math.min(pending, previewRemaining);
+              previewRemaining -= applied;
+              return { ...row, pending, applied, balanceAfter: pending - applied };
+            }).filter(row => row.applied > 0);
+            const unallocatedAmount = Math.max(0, previewRemaining);
             return (
               <>
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>Allocate Payment Sequentially</div>
-                <div style={{ background: "#f8fafc", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Starting Invoice:</b> {inv.invoiceNo}</div>
-                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Company:</b> {inv.company} | {inv.terminal}</div>
-                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Invoice Net:</b> {formatAmt(inv.netAmt)}</div>
-                  <div style={{ fontSize: 13, marginBottom: 4 }}><b>Already Paid:</b> {formatAmt(getPaidAmt(inv))}</div>
-                  <div style={{ fontSize: 13 }}><b>Pending:</b> {formatAmt(getPendingAmt(inv))}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Direct Payment Entry</div>
+                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: 12, marginBottom: 14, color: "#1e3a8a", fontSize: 12, lineHeight: 1.55 }}>
+                  Enter the <b>new payment received now</b>. The system will automatically apply it to the selected company’s oldest pending invoice first, then continue invoice by invoice. For the second payment, enter only the second received amount; it will continue from the next pending or partly paid invoice.
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Payment Date</label>
-                    <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} style={inputStyle} />
+                <div style={{ background: "#f8fafc", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Company</label>
+                      <select value={directPayCompany} onChange={e => setDirectPayCompany(e.target.value)} style={selectStyle}>
+                        <option value="HPCL">HPCL</option>
+                        <option value="IOCL">IOCL</option>
+                        <option value="BPCL">BPCL</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Total Pending for Company</label>
+                      <div style={{ ...inputStyle, display: "flex", alignItems: "center", background: "white", fontWeight: 800, color: pendingTotal > 0 ? "#dc2626" : "#16a34a" }}>{formatAmt(pendingTotal)}</div>
+                    </div>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Payment Amount (₹)</label>
-                    <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={inputStyle} placeholder="e.g. 5000000" />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>Payment Date</label>
+                      <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: "#64748b" }}>New Payment Amount Received Now (₹)</label>
+                      <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} style={inputStyle} placeholder="e.g. 5000000" />
+                      <div style={{ fontSize: 11, color: "#64748b", marginTop: 5 }}>Example: for a second ₹20 lakh receipt, type only 2000000.</div>
+                    </div>
                   </div>
                 </div>
                 {allocationPreview.length > 0 && (
                   <div style={{ background: "#ecfdf5", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12, marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>Sequential allocation preview</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#166534", marginBottom: 8 }}>Automatic sequential allocation preview</div>
                     <div style={{ display: "grid", gap: 6 }}>
                       {allocationPreview.map(row => (
                         <div key={row.id} style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr", gap: 8, fontSize: 11 }}>
@@ -1125,11 +1140,19 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
                         </div>
                       ))}
                     </div>
+                    {unallocatedAmount > 0 && (
+                      <div style={{ marginTop: 8, fontSize: 11, color: "#b45309", fontWeight: 700 }}>Unallocated extra amount after clearing all pending invoices: {formatAmt(unallocatedAmount)}</div>
+                    )}
+                  </div>
+                )}
+                {orderedForPreview.length === 0 && (
+                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 12, marginBottom: 16, color: "#166534", fontSize: 12, fontWeight: 700 }}>
+                    No pending invoice balance is available for {directPayCompany}.
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => handlePay(showPayModal)} disabled={!paymentAmount || parseFloat(paymentAmount) <= 0} style={{ ...btnPrimary, background: "#16a34a", opacity: (!paymentAmount || parseFloat(paymentAmount) <= 0) ? 0.55 : 1 }}>Allocate Payment ✓</button>
-                  <button onClick={() => { setShowPayModal(null); setPaymentAmount(""); }} style={btnSecondary}>Cancel</button>
+                  <button onClick={handlePay} disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || orderedForPreview.length === 0} style={{ ...btnPrimary, background: "#16a34a", opacity: (!paymentAmount || parseFloat(paymentAmount) <= 0 || orderedForPreview.length === 0) ? 0.55 : 1 }}>Allocate Payment ✓</button>
+                  <button onClick={() => { setShowPayModal(false); setPaymentAmount(""); }} style={btnSecondary}>Cancel</button>
                 </div>
               </>
             );

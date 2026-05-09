@@ -70,5 +70,5 @@
 
 - [x] Reproduce and inspect why the payment amount input loses focus after each typed digit.
 - [x] Refactor the payment modal so input focus is preserved while updating the allocation preview.
-- [x] Build and deploy the focus fix to GitHub Pages.
+- [ ] Build and deploy the focus fix to GitHub Pages.
 - [ ] Save a checkpoint and share the confirmed live link with the user.
