@@ -97,5 +97,5 @@
 - [x] Restore invoice `GJ0160012325` with the provided 05 May 2026 HPCL PIPAVAV details if missing from the default data.
 - [x] Add a confirmation prompt before deleting any invoice so invoices cannot be removed accidentally.
 - [x] Improve partial-payment removal messaging and behavior so users can remove the payment entry from Payment History and reverse the invoice allocation.
-- [ ] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
+- [x] Build, deploy to GitHub Pages, push source to GitHub, verify live, and save a checkpoint.
 
