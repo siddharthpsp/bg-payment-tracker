@@ -23,3 +23,23 @@
 - [ ] Check whether the GitHub URL is only showing source code instead of a web app.
 - [ ] Configure GitHub Pages if the user needs the app to open directly from GitHub.
 - [ ] Share the final correct web app URL.
+
+# Package JSON GitHub Pages Deployment
+
+- [ ] Add the GitHub Pages homepage and deployment scripts to package.json.
+- [ ] Use the configured build output to publish the app to the GitHub Pages branch.
+- [ ] Confirm the GitHub Pages URL or identify the one manual setting GitHub requires.
+
+# Excel Dashboard Integration Request
+
+- [ ] Inspect the uploaded workbook `NH_Package_03_04_Dashboard9-5-26.xlsx` and identify the dashboard sections, summary values, tables, and labels that should appear in the web app.
+- [ ] Update the BG Payment Tracker dashboard to include the Excel dashboard details while preserving the existing Swiss Financial Modernism interface.
+- [ ] Rebuild and republish the GitHub Pages version so the live GitHub URL reflects the new dashboard content.
+- [ ] Verify the live app opens correctly after publishing and summarize the added details for the user.
+
+# Remove Date-wise Invoice Table
+
+- [ ] Remove the Date-wise Bitumen VG40 Invoice Details table from the dashboard tab.
+- [ ] Keep the Excel summary cards, terminal-wise breakdown, and company-wise breakdown visible.
+- [ ] Rebuild and republish the GitHub Pages app.
+- [ ] Verify the live dashboard no longer shows the date-wise invoice table.
