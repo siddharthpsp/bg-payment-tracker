@@ -194,4 +194,34 @@
 - [x] Remove or replace the GitHub Pages redirect if a direct GitHub-hosted frontend with cloud persistence is feasible.
 - [x] Ensure the direct GitHub Pages app does not use browser localStorage as the source of truth for invoices, BGs, and payment history.
 - [x] Validate the shared cloud data implementation with automated tests and production build.
-- [ ] Publish the updated GitHub Pages build after GitHub authentication is restored.
+- [x] Publish the updated GitHub Pages build after GitHub authentication is restored.
+
+# No Manus Hosting Requirement
+
+- [ ] Remove Manus-hosted backend/domain as the required runtime for the live app.
+- [ ] Keep GitHub Pages as the public frontend URL if possible.
+- [ ] Select a non-Manus cloud backend/database provider for shared invoices, BGs, and payment history.
+- [ ] Configure the frontend to use the selected non-Manus cloud backend instead of the Manus backend URL.
+- [ ] Validate shared cloud persistence across browsers/devices after the non-Manus backend is configured.
+
+# Exact GitHub Pages Host Requirement
+
+- [x] Make `https://siddharthpsp.github.io/bg-payment-tracker/` the production app URL that opens the tracker directly.
+- [x] Do not use a Manus URL as the user-facing host.
+- [ ] Keep tracker data cloud-saved rather than browser-local when opened from the GitHub Pages URL after the updated backend is published.
+
+# Direct Open Without Manus Login
+
+- [x] Make `https://siddharthpsp.github.io/bg-payment-tracker/` open the tracker directly without Manus login.
+- [x] Remove Manus OAuth as a requirement for reading or saving tracker data from the GitHub Pages URL.
+- [ ] Use a non-Manus cloud database or backend for shared invoices, BGs, and payment history.
+- [x] Publish and verify the GitHub Pages URL opens directly in a fresh browser session.
+- [ ] Publish the updated backend checkpoint so `tracker.getSharedState` and `tracker.saveSharedState` are available to the GitHub Pages frontend.
+- [ ] Re-test the GitHub Pages page after backend publishing and confirm cloud load/save succeeds without login.
+
+# Match Bridge Pile Tracker GitHub Pages Pattern
+
+- [ ] Inspect `https://siddharthpsp.github.io/bridge-pile-tracker/` and its repository pattern to identify how it opens directly.
+- [ ] Determine whether `bridge-pile-tracker` uses true shared cloud storage or browser/device storage.
+- [ ] Apply the same direct-open GitHub Pages hosting pattern to `https://siddharthpsp.github.io/bg-payment-tracker/` where technically compatible.
+- [ ] Explain any storage difference clearly if the previous tracker was not actually using shared cloud database storage.

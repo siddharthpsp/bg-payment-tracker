@@ -692,8 +692,7 @@ ${bgDetails.map((bg, i) => `<tr><td>${i+1}</td><td class="b">${bg.bgNo || 'N/A'}
           )}
         </div>
         <div style={{ marginTop: 10, fontSize: 11, color: "#cbd5e1", maxWidth: 760 }}>
-          Your invoices, bank guarantees, and payment history are saved to the shared cloud database for this app. The GitHub Pages frontend uses this cloud data directly, so this browser is not the source of truth.
-        </div>
+   Your invoices, bank guarantees, and payment history are saved to the shared cloud database for this app. The GitHub Pages frontend uses this cloud data directly, so this browser is not the source of truth.        </div>
         {cloudStateQuery.isError && (
           <div style={{ marginTop: 12, maxWidth: 820, background: "rgba(127,29,29,0.35)", border: "1px solid rgba(254,202,202,0.35)", color: "#fee2e2", borderRadius: 12, padding: "10px 12px", fontSize: 12, lineHeight: 1.5 }}>
             Cloud data could not be loaded, so automatic saving is paused to protect the last saved database state. Please retry the cloud load before making tracker changes.
